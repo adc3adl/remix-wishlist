@@ -282,7 +282,7 @@ app.get("/debug/all-events", (req, res) => {
 app.all(
   "*",
   createRequestHandler({
-    build: require("./build"),
+    build: require("./build/index.js"),
     mode: process.env.NODE_ENV
   })
 );
