@@ -1,5 +1,5 @@
 (function () {
-  const API_URL = "https://surround-myrtle-triumph-minimize.trycloudflare.com";
+  const API_URL = "https://remix-wishlist.onrender.com";
   window.cachedWishlistIds = window.cachedWishlistIds || [];
 
   if (!document.getElementById("wishlist-modal-styles")) {

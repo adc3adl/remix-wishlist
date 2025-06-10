@@ -42,7 +42,7 @@
 
       const productUrl = window.location.href;
 
-      const API_URL = "https://surround-myrtle-triumph-minimize.trycloudflare.com"; 
+      const API_URL = "https://remix-wishlist.onrender.com"; 
       
       fetch(`${API_URL}/api/add-to-cart`, {
         method: "POST",

@@ -1,5 +1,5 @@
 (function () {
-  window.API_URL = window.API_URL || "https://surround-myrtle-triumph-minimize.trycloudflare.com";
+  window.API_URL = window.API_URL || "https://remix-wishlist.onrender.com";
   const recentlyRemoved = new Set();
   const API_URL = window.API_URL;
 
