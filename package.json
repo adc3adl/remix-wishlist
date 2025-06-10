@@ -3,13 +3,13 @@
   "private": true,
   "sideEffects": false,
   "type": "module",
-"scripts": {
-  "dev": "npm run build && node server.cjs",
-  "build": "npx remix build",
-  "lint": "eslint --ignore-path .gitignore --cache --cache-location ./node_modules/.cache/eslint .",
-  "start": "node server.cjs",
-  "typecheck": "tsc"
-},
+  "scripts": {
+    "dev": "npm run build && node server.cjs",
+    "build": "npx remix build",
+    "lint": "eslint --ignore-path .gitignore --cache --cache-location ./node_modules/.cache/eslint .",
+    "start": "node server.cjs",
+    "typecheck": "tsc"
+  },
   "dependencies": {
     "@remix-run/express": "^2.16.8",
     "@remix-run/node": "^2.16.8",
