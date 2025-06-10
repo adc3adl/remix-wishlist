@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "npm run build && node server.cjs",
     "build": "remix build",
-    "type": "module",
     "lint": "eslint --ignore-path .gitignore --cache --cache-location ./node_modules/.cache/eslint .",
     "start": "remix-serve ./build/server/index.js",
     "typecheck": "tsc"
