@@ -55,7 +55,11 @@
         background: transparent;
         display: block;
       }
-
+.wishlist-variant {
+  font-size: 14px;
+  color: #555;
+  margin-top: 2px;
+}
   
     `;
     document.head.appendChild(style);
@@ -179,6 +183,7 @@ if (prehideStyle) prehideStyle.remove();
 
   <div style="flex: 1;">
     <div class="wishlist-title">${p.title}</div>
+    ${p.variantTitle ? `<div class="wishlist-variant">Variant: ${p.variantTitle}</div>` : ""}
     <div class="wishlist-price">${p.price} ${p.currency || 'UAH'}</div>
   </div>
 

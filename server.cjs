@@ -157,9 +157,7 @@ app.post("/api/wishlist", async (req, res) => {
 
     if (action === "update") {
       if (!Number.isInteger(quantity) || quantity < 1) return res.status(400).json({ error: "Invalid quantity" });
-      wishlist = wishlist.map(p =>
-        typeof p === "object" && p.id === variantId ? { ...p, quantity } : (p === variantId ? { id: variantId, quantity } : p)
-      );
+      wishlist = wishlist.map(p => (typeof p === "object" && p.id === variantId ? { ...p, quantity } : (p === variantId ? { id: variantId, quantity } : p)));
     } else if (action === "add") {
       if (!wishlist.some(p => (typeof p === "object" ? p.id : p) === variantId)) {
         wishlist.push({ id: variantId, quantity: 1 });
@@ -175,8 +173,6 @@ app.post("/api/wishlist", async (req, res) => {
     }
 
     if (wishlist.length === 0) return res.json({ status: "ok", wishlist });
-
-    console.log("📦 Новый список wishlist:", wishlist);
 
     const payload = {
       metafield: {
@@ -209,8 +205,6 @@ app.get("/api/wishlist-get", async (req, res) => {
   if (!customerId) return res.status(400).json({ error: "Missing customerId" });
 
   try {
-    console.log("📥 Получен customerId:", customerId);
-
     const tokenRow = db.prepare("SELECT token FROM shop_tokens WHERE shop = ?").get(SHOP);
     if (!tokenRow?.token) return res.status(401).json({ error: "No valid token found for shop" });
     const token = tokenRow.token;
@@ -234,9 +228,16 @@ app.get("/api/wishlist-get", async (req, res) => {
         const { data: variantData } = await axios.get(`https://${SHOP}/admin/api/2024-01/variants/${variantId}.json`, {
           headers: { "X-Shopify-Access-Token": token }
         });
-        const productId = variantData.variant.product_id;
+        const variant = variantData.variant;
+        const productId = variant.product_id;
         uniqueProductIds.add(productId);
-        variantMap.set(productId, { id: variantId, quantity: entry.quantity || 1 });
+
+        variantMap.set(productId, {
+          id: variantId,
+          quantity: entry.quantity || 1,
+          title: variant.title,
+          image_id: variant.image_id
+        });
       } catch (err) {
         console.error("❌ Variant fetch error:", err.response?.data || err.message);
       }
@@ -249,14 +250,18 @@ app.get("/api/wishlist-get", async (req, res) => {
 
     const products = productData.products.map(p => {
       const v = variantMap.get(p.id);
+      const variant = p.variants.find(variant => variant.id === v?.id);
+      const imageObj = p.images.find(img => img.id === v?.image_id) || p.image || p.images?.[0];
+
       return {
         id: v?.id || p.variants[0]?.id,
         title: p.title,
+        variantTitle: v?.title || variant?.title || "",
         url: `/products/${p.handle}`,
-        price: p.variants[0]?.price || '—',
+        price: variant?.price || p.variants[0]?.price || '—',
         currency: 'UAH',
-        image: p.image?.src || p.images?.[0]?.src || "https://placehold.co/80x80?text=No+Image",
-        quantity: v.quantity || 1
+        image: imageObj?.src || "https://placehold.co/80x80?text=No+Image",
+        quantity: v?.quantity || 1
       };
     });
 
