@@ -309,15 +309,50 @@ async function fetchWishlist(customerId) {
   function main() {
     injectWishlistStyles();
 
-    document.addEventListener("click", async function (e) {
-      const wishlistBtn = e.target.closest(".wishlist-button");
-      if (wishlistBtn) {
-        const customerId = getCustomerId();
-        if (!customerId) {
-          showLoginModal(wishlistBtn);
+document.addEventListener("click", async function (e) {
+  const wishlistBtn = e.target.closest(".wishlist-button");
+  if (wishlistBtn) {
+    const variantId = wishlistBtn.getAttribute("data-variant-id");
+    const customerId = getCustomerId();
+
+    if (!customerId) {
+      showLoginModal(wishlistBtn);
+      return;
+    }
+
+    // Защита от двойного клика
+    if (wishlistBtn.dataset.processing === "true") return;
+    wishlistBtn.dataset.processing = "true";
+
+    const isAdded = window.cachedWishlistIds.includes(variantId);
+    const action = isAdded ? "remove" : "add";
+
+    try {
+      const res = await fetch(`${API_URL}/api/wishlist`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customerId, productId: variantId, action })
+      });
+
+      const result = await res.json();
+      if (result?.status === "ok") {
+        if (action === "add") {
+          window.cachedWishlistIds.push(variantId);
+        } else {
+          window.cachedWishlistIds = window.cachedWishlistIds.filter(id => id !== variantId);
         }
-        return;
+
+        // ✅ Обновляем иконки сердечек везде
+        syncWishlistButtons();
       }
+    } catch (err) {
+      console.error("❌ Wishlist toggle error:", err);
+    } finally {
+      wishlistBtn.dataset.processing = "false";
+    }
+
+    return;
+  }
 
       const removeBtn = e.target.closest(".wishlist-remove-btn");
       if (removeBtn) {
