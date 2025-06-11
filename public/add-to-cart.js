@@ -1,3 +1,23 @@
+function ensureCartDrawerThenOpen() {
+  fetch("/?sections=cart-drawer")
+    .then((res) => res.json())
+    .then((data) => {
+      const html = new DOMParser().parseFromString(data["cart-drawer"], "text/html");
+      const newDrawer = html.querySelector("cart-drawer");
+      const oldDrawer = document.querySelector("cart-drawer");
+
+      if (newDrawer && oldDrawer) {
+        oldDrawer.replaceWith(newDrawer);
+        document.body.classList.add("overflow-hidden");
+        newDrawer.classList.add("animate", "active");
+        newDrawer.querySelector("button[name='close']")?.focus();
+      }
+    })
+    .catch((e) => {
+      console.error("🛒 Drawer update error:", e);
+    });
+}
+
 (function () {
   document.addEventListener(
     "submit",
@@ -76,12 +96,12 @@
         })
         .then((shopifyResponse) => {
           if (shopifyResponse?.ok) {
-            console.log("[add-to-cart] ✅ Product added to cart!");
-            window.location.href = "/cart";
-          } else {
-            console.error("[add-to-cart] ❌ Add to cart error");
-          }
-        })
+          console.log("[add-to-cart] ✅ Product added to cart!");
+          ensureCartDrawerThenOpen();
+        } else {
+          console.error("[add-to-cart] ❌ Add to cart error");
+        }
+      })
         .catch((error) => {
           console.error("[add-to-cart] 🔥 Network error:", error);
         });
