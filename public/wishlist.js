@@ -214,7 +214,7 @@ function showLoginModal(targetElement) {
       title.textContent = product.title;
 
       const price = document.createElement("span");
-      price.textContent = `${product.variant_price || product.price} ${product.currency || "UAH"}`;
+      price.textContent = `${product.price} ${product.currency || "UAH"}`;
 
       const addToCartBtn = document.createElement("button");
       addToCartBtn.textContent = "🛒 Add to cart";
@@ -266,17 +266,45 @@ function showLoginModal(targetElement) {
     return customerId;
   }
 
-  async function fetchWishlist(customerId) {
+  async function enrichPricesInWishlist(products) {
+  return Promise.all(products.map(async (p) => {
+    if (!p.handle || !p.id) return p;
+
     try {
-      const res = await fetch(`${API_URL}/api/wishlist-get?customerId=${customerId}`, {
-        headers: { "ngrok-skip-browser-warning": "true" }
-      });
+      const res = await fetch(`/products/${p.handle}.js`);
       const data = await res.json();
-      renderWishlistProducts(data.products || [], customerId);
+      const variant = data.variants.find(v => String(v.id) === String(p.id));
+
+      if (variant) {
+        return {
+          ...p,
+          price: (variant.price / 100).toFixed(2),
+          currency: Shopify.currency?.active || 'UAH',
+          variantTitle: variant.public_title,
+          image: variant.featured_image?.src || data.featured_image || p.image,
+        };
+      }
     } catch (err) {
-      console.error("❌ Error fetching wishlist:", err);
+      console.warn("💰 Failed to enrich", p.id, err);
     }
+
+    return p;
+  }));
+}
+
+async function fetchWishlist(customerId) {
+  try {
+    const res = await fetch(`${API_URL}/api/wishlist-get?customerId=${customerId}`, {
+      headers: { "ngrok-skip-browser-warning": "true" }
+    });
+    const data = await res.json();
+    const enriched = await enrichPricesInWishlist(data.products || []);
+    renderWishlistProducts(enriched, customerId);
+  } catch (err) {
+    console.error("❌ Error fetching wishlist:", err);
   }
+}
+
 
   function main() {
     injectWishlistStyles();
