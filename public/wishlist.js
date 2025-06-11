@@ -160,33 +160,28 @@
   }
 
 function showLoginModal(targetElement) {
-  // Удаляем предыдущую модалку, если она уже была
-  const existingModal = document.getElementById("wishlist-login-modal");
-  if (existingModal) existingModal.remove();
+    const existingModal = document.getElementById("wishlist-login-modal");
+    if (existingModal) existingModal.remove();
 
-  // Создаём логин-модалку
-  const modal = document.createElement("div");
-  modal.id = "wishlist-login-modal";
-  modal.className = "wishlist-login-popup";
-  modal.innerHTML = `
-  <button id="wishlist-login-close" class="wishlist-modal-close" aria-label="Close">&times;</button>
+    const modal = document.createElement("div");
+    modal.id = "wishlist-login-modal";
+    modal.className = "wishlist-login-popup";
+    modal.innerHTML = `
+    <button id="wishlist-login-close" class="wishlist-modal-close" aria-label="Close">&times;</button>
     <div class="wishlist-login-content">
-      
       <p>Please <a href="/account/login">log in</a> to use your wishlist ❤️</p>
-    </div>
-  `;
+    </div>`;
 
-  // Добавляем модалку внутрь карточки товара (или fallback в body)
-  const productCard = targetElement.closest(".product-card") || targetElement.closest(".card") || targetElement.parentElement;
-  if (productCard) {
-    productCard.appendChild(modal);
-  } else {
-    document.body.appendChild(modal);
+    const productCard = targetElement.closest(".product-card") || targetElement.closest(".card") || targetElement.parentElement;
+    if (productCard) {
+      productCard.appendChild(modal);
+    } else {
+      document.body.appendChild(modal);
+    }
+
+    setTimeout(() => modal.remove(), 6000);
   }
 
-  // Удалить через 6 секунд
-  setTimeout(() => modal.remove(), 6000);
-}
   function renderWishlistProducts(products, customerId) {
     const container = document.getElementById("wishlist-products");
     if (!container) return;
@@ -200,7 +195,7 @@ function showLoginModal(targetElement) {
     products.forEach((product) => {
       const item = document.createElement("div");
       item.className = "wishlist-item";
-      item.setAttribute("data-product-id", product.id);
+      item.setAttribute("data-variant-id", product.id);
 
       const image = document.createElement("img");
       image.src = (product.image && typeof product.image === "string" && product.image.startsWith("http"))
@@ -224,13 +219,13 @@ function showLoginModal(targetElement) {
       const addToCartBtn = document.createElement("button");
       addToCartBtn.textContent = "🛒 Add to cart";
       addToCartBtn.className = "wishlist-add-to-cart";
-      addToCartBtn.setAttribute("data-product-id", product.id);
+      addToCartBtn.setAttribute("data-variant-id", product.id);
 
       const removeBtn = document.createElement("button");
       removeBtn.textContent = "✕";
       removeBtn.title = "Remove from wishlist";
       removeBtn.className = "wishlist-remove-btn";
-      removeBtn.setAttribute("data-product-id", product.id);
+      removeBtn.setAttribute("data-variant-id", product.id);
 
       info.appendChild(title);
       info.appendChild(price);
@@ -241,29 +236,25 @@ function showLoginModal(targetElement) {
 
       container.appendChild(item);
     });
-document.querySelectorAll(".wishlist-button").forEach((btn) => {
-  const productId = btn.getAttribute("data-product-id");
-  const found = products.find((p) => p.id === productId);
-  if (found) {
-    btn.classList.add("added");
-    const svg = btn.querySelector("svg");
-    if (svg) {
-      svg.setAttribute("fill", "#e63946");
-      svg.setAttribute("stroke", "#e63946");
-    }
-  } else {
-    btn.classList.remove("added");
-    const svg = btn.querySelector("svg");
-    if (svg) {
-      svg.setAttribute("fill", "none");
-      svg.setAttribute("stroke", "#e63946");
-    }
-  }
-});
 
-
-
-
+    document.querySelectorAll(".wishlist-button").forEach((btn) => {
+      const variantId = btn.getAttribute("data-variant-id");
+      const found = products.find((p) => String(p.id) === variantId);
+      const svg = btn.querySelector("svg");
+      if (found) {
+        btn.classList.add("added");
+        if (svg) {
+          svg.setAttribute("fill", "#e63946");
+          svg.setAttribute("stroke", "#e63946");
+        }
+      } else {
+        btn.classList.remove("added");
+        if (svg) {
+          svg.setAttribute("fill", "none");
+          svg.setAttribute("stroke", "#e63946");
+        }
+      }
+    });
   }
 
   function getCustomerId() {
@@ -290,43 +281,35 @@ document.querySelectorAll(".wishlist-button").forEach((btn) => {
   function main() {
     injectWishlistStyles();
 
-document.addEventListener("click", async function (e) {
-const wishlistBtn = e.target.closest(".wishlist-button");
-if (wishlistBtn) {
-  const customerId = getCustomerId();
-  if (!customerId) {
-    showLoginModal(wishlistBtn);
-  }
+    document.addEventListener("click", async function (e) {
+      const wishlistBtn = e.target.closest(".wishlist-button");
+      if (wishlistBtn) {
+        const customerId = getCustomerId();
+        if (!customerId) {
+          showLoginModal(wishlistBtn);
+        }
+        return;
+      }
 
-  // ❌ Удалён fetch-запрос к /api/wishlist — теперь он должен идти из Liquid
-  // ✅ Оставлен только показ модалки для неавторизованных
-
-  return;
-}
       const removeBtn = e.target.closest(".wishlist-remove-btn");
       if (removeBtn) {
-        const productId = removeBtn.getAttribute("data-product-id");
-        let customerId = getCustomerId();
+        const variantId = removeBtn.getAttribute("data-variant-id");
+        const customerId = getCustomerId();
         if (!customerId) return;
         try {
           const res = await fetch(`${API_URL}/api/wishlist`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ customerId, productId, action: "remove" })
+            body: JSON.stringify({ customerId, productId: variantId, action: "remove" })
           });
-         if (res.ok) {
-  // 🧠 Обновим локальный кэш — удалим ID
-  cachedWishlistIds = cachedWishlistIds.filter(id => String(id) !== productId);
-
-  syncWishlistButtons(); 
-
-  // 🛡️ И добавим в защитный кэш от двойных кликов
-  window.__wishlistRemovedCache = window.__wishlistRemovedCache || new Set();
-  window.__wishlistRemovedCache.add(productId);
-  setTimeout(() => window.__wishlistRemovedCache.delete(productId), 3000);
-
-  fetchWishlist(customerId);
-} else {
+          if (res.ok) {
+            cachedWishlistIds = cachedWishlistIds.filter(id => String(id) !== variantId);
+            syncWishlistButtons();
+            window.__wishlistRemovedCache = window.__wishlistRemovedCache || new Set();
+            window.__wishlistRemovedCache.add(variantId);
+            setTimeout(() => window.__wishlistRemovedCache.delete(variantId), 3000);
+            fetchWishlist(customerId);
+          } else {
             alert("Error removing from wishlist");
           }
         } catch (err) {
@@ -335,97 +318,90 @@ if (wishlistBtn) {
         return;
       }
 
-const addToCartBtn = e.target.closest(".wishlist-add-to-cart");
-if (addToCartBtn) {
-  const productId = addToCartBtn.getAttribute("data-product-id");
-  let customerId = getCustomerId();
-  const itemDiv = addToCartBtn.closest('.wishlist-item');
-  const productTitle = itemDiv?.querySelector('a')?.textContent || "";
-  const productUrl = itemDiv?.querySelector('a')?.href || "";
+      const addToCartBtn = e.target.closest(".wishlist-add-to-cart");
+      if (addToCartBtn) {
+        const variantId = addToCartBtn.getAttribute("data-variant-id");
+        const customerId = getCustomerId();
+        const itemDiv = addToCartBtn.closest('.wishlist-item');
+        const productTitle = itemDiv?.querySelector('a')?.textContent || "";
+        const productUrl = itemDiv?.querySelector('a')?.href || "";
 
-  addToCartBtn.disabled = true;
-  addToCartBtn.textContent = "Adding...";
+        addToCartBtn.disabled = true;
+        addToCartBtn.textContent = "Adding...";
 
-  fetch('/cart/add.js', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id: productId, quantity: 1 })
-  })
-    .then(res => {
-      if (!res.ok) throw new Error('Shopify cart add error');
-      return res.json();
-    })
-    .then(() => {
-      return fetch(`${API_URL}/api/add-to-cart`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': 'true',
-          'X-From-Wishlist': 'true'
-        },
-        body: JSON.stringify({
-          productId,
-          title: productTitle,
-          url: productUrl,
-          customerId: customerId || ""
+        fetch('/cart/add.js', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: variantId, quantity: 1 })
         })
-      });
-    })
-.then(() => {
-  addToCartBtn.textContent = "Added!";
+          .then(res => {
+            if (!res.ok) throw new Error('Shopify cart add error');
+            return res.json();
+          })
+          .then(() => {
+            return fetch(`${API_URL}/api/add-to-cart`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'ngrok-skip-browser-warning': 'true',
+                'X-From-Wishlist': 'true'
+              },
+              body: JSON.stringify({
+                productId: variantId,
+                title: productTitle,
+                url: productUrl,
+                customerId: customerId || ""
+              })
+            });
+          })
+          .then(() => {
+            addToCartBtn.textContent = "Added!";
+            fetch('/cart.js')
+              .then((res) => res.json())
+              .then((cart) => {
+                const count = cart?.item_count || 0;
+                document.querySelectorAll('.cart-count-bubble, .cart-count, #cart-count').forEach(el => {
+                  el.textContent = count;
+                  el.classList.add('visible');
+                });
+              });
+            setTimeout(() => {
+              ensureCartDrawerThenOpen();
+            }, 400);
+          })
+          .catch(err => {
+            addToCartBtn.textContent = "Error";
+            setTimeout(() => {
+              addToCartBtn.textContent = "🛒 Add to cart";
+              addToCartBtn.disabled = false;
+            }, 1200);
+            alert("Ошибка при добавлении в корзину");
+            console.error("❌ Add to cart error:", err);
+          });
 
-  // Обновим счётчик корзины
-  fetch('/cart.js')
-    .then((res) => res.json())
-    .then((cart) => {
-      const count = cart?.item_count || 0;
-      document.querySelectorAll('.cart-count-bubble, .cart-count, #cart-count').forEach(el => {
-        el.textContent = count;
-        el.classList.add('visible');
-      });
-    });
-
-setTimeout(() => {
-  ensureCartDrawerThenOpen();
-}, 400);
-})
-    .catch(err => {
-      addToCartBtn.textContent = "Error";
-      setTimeout(() => {
-        addToCartBtn.textContent = "🛒 Add to cart";
-        addToCartBtn.disabled = false;
-      }, 1200);
-      alert("Ошибка при добавлении в корзину");
-      console.error("❌ Add to cart error:", err);
-    });
-
-  return;
-}
+        return;
+      }
 
       if (e.target.id === "wishlist-open") {
-        let customerId = getCustomerId();
+        const customerId = getCustomerId();
         if (!customerId) return showLoginModal();
         document.getElementById("wishlist-modal").classList.remove("hidden");
         fetchWishlist(customerId);
         return;
       }
 
-
-
-if (e.target.id === "wishlist-login-close") {
-  const modal = document.getElementById("wishlist-login-modal");
-  if (modal) {
-    modal.classList.remove("fade-in");
-    modal.classList.add("fade-out");
-
-    // После окончания анимации — скрываем и сбрасываем fade-out
-    setTimeout(() => {
-      modal.classList.add("hidden");
-      modal.classList.remove("fade-out");
-    }, 300);
-  }
-  return;
-}
+      if (e.target.id === "wishlist-login-close") {
+        const modal = document.getElementById("wishlist-login-modal");
+        if (modal) {
+          modal.classList.remove("fade-in");
+          modal.classList.add("fade-out");
+          setTimeout(() => {
+            modal.classList.add("hidden");
+            modal.classList.remove("fade-out");
+          }, 300);
+        }
+        return;
+      }
     });
   }
 
