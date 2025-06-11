@@ -151,27 +151,28 @@ if (prehideStyle) prehideStyle.remove();
     const closeBtn = document.getElementById("wishlist-close");
     const productContainer = document.getElementById("wishlist-products");
 
-    async function fetchWishlist() {
-      if (!window.customerId) {
-        productContainer.innerHTML = 'Please <a href="/account/login">log in</a> to use your wishlist ❤️';
-        return;
-      }
-      try {
-        const res = await fetch(`${API_URL}/api/wishlist-get?customerId=${window.customerId}`, {
-          headers: { "ngrok-skip-browser-warning": "true" }
-        });
-        const contentType = res.headers.get("content-type") || "";
-        const raw = await res.text();
-        if (!res.ok || !contentType.includes("application/json")) {
-          throw new Error("Expected JSON but got something else");
-        }
-        const data = JSON.parse(raw);
+  async function fetchWishlist() {
+  if (!window.customerId) {
+    productContainer.innerHTML = 'Please <a href="/account/login">log in</a> to use your wishlist ❤️';
+    return;
+  }
+  try {
+    const res = await fetch(`${API_URL}/api/wishlist-get?customerId=${window.customerId}`, {
+      headers: { "ngrok-skip-browser-warning": "true" }
+    });
+    const contentType = res.headers.get("content-type") || "";
+    const raw = await res.text();
+    if (!res.ok || !contentType.includes("application/json")) {
+      throw new Error("Expected JSON but got something else");
+    }
+    const data = JSON.parse(raw);
 
-        window.cachedWishlistIds = data.products?.map(p => String(p.id)) || [];
-        syncWishlistButtons();
-  
-        if (data?.products?.length) {
-          productContainer.innerHTML = data.products.map(p => `
+    const enriched = await enrichPricesInWishlist(data.products || []);
+    window.cachedWishlistIds = enriched.map(p => String(p.id));
+    syncWishlistButtons();
+
+    if (enriched.length) {
+      productContainer.innerHTML = enriched.map(p => `
 <div class="wishlist-item"
      data-variant-id="${p.id}"
      data-title="${encodeURIComponent(p.title)}"
@@ -201,15 +202,15 @@ if (prehideStyle) prehideStyle.remove();
     ✕
   </button>
 </div>
-          `).join("");
-        } else {
-          productContainer.innerHTML = "Your wishlist is empty.";
-        }
-      } catch (err) {
-        productContainer.innerHTML = "Loading error.";
-        console.error("❌ Error loading wishlist:", err);
-      }
+      `).join("");
+    } else {
+      productContainer.innerHTML = "Your wishlist is empty.";
     }
+  } catch (err) {
+    productContainer.innerHTML = "Loading error.";
+    console.error("❌ Error loading wishlist:", err);
+  }
+}
 
     if (toggleBtn && modal && productContainer) {
       toggleBtn.addEventListener("click", async () => {
@@ -439,95 +440,55 @@ fetch("/cart.js")
   } else {
     main();
   }
-  (function () {
-  async function enrichPricesInWishlist(products) {
-    const enriched = await Promise.all(products.map(async (p) => {
-      if (!p.handle || !p.id) return p;
-
-      try {
-        const res = await fetch(`/products/${p.handle}.js`);
-        const data = await res.json();
-        const variant = data.variants.find(v => String(v.id) === String(p.id));
-
-        if (variant) {
-          p.price = (variant.price / 100).toFixed(2);
-          p.currency = Shopify.currency.active || 'USD';
-        }
-      } catch (err) {
-        console.warn("💰 Не удалось обновить цену для", p.id, err);
+function syncWishlistButtons() {
+  document.querySelectorAll(".wishlist-button").forEach((el) => {
+    const variantId = el.getAttribute("data-variant-id");
+    if (window.cachedWishlistIds.includes(variantId)) {
+      el.classList.add("added");
+      const svg = el.querySelector("svg");
+      if (svg) {
+        svg.setAttribute("fill", "#e63946");
+        svg.setAttribute("stroke", "#e63946");
       }
-
-      return p;
-    }));
-
-    return enriched;
-  }
-
-  window.fetchWishlist = async function fetchWishlist(customerId) {
-    try {
-      const res = await fetch(`https://remix-wishlist.onrender.com/api/wishlist-get?customerId=${customerId}`, {
-        headers: { "ngrok-skip-browser-warning": "true" }
-      });
-      const data = await res.json();
-      const enriched = await enrichPricesInWishlist(data.products || []);
-
-      window.cachedWishlistIds = enriched.map(p => String(p.id));
-      renderWishlist(enriched);
-    } catch (err) {
-      console.error("❌ Ошибка загрузки wishlist:", err);
-    }
-  };
-
-
-  // === new price variant
-  async function enrichPricesInWishlist(products) {
-    return Promise.all(products.map(async (p) => {
-      if (!p.handle || !p.id) return p;
-
-      try {
-        const res = await fetch(`/products/${p.handle}.js`);
-        const data = await res.json();
-        const variant = data.variants.find(v => String(v.id) === String(p.id));
-
-        if (variant) {
-          return {
-            ...p,
-            price: (variant.price / 100).toFixed(2),
-            currency: Shopify.currency?.active || 'USD',
-            variantTitle: variant.public_title,
-            image: variant.featured_image?.src || data.featured_image || p.image,
-          };
-        }
-      } catch (err) {
-        console.warn("💰 Не удалось обогатить вариант", p.id, err);
+    } else {
+      el.classList.remove("added");
+      const svg = el.querySelector("svg");
+      if (svg) {
+        svg.setAttribute("fill", "none");
+        svg.setAttribute("stroke", "#e63946");
       }
-
-      return p;
-    }));
-  }
-
-  //window.fetchWishlist
-  window.fetchWishlist = async function fetchWishlist(customerId) {
-    try {
-      const res = await fetch(`${API_URL}/api/wishlist-get?customerId=${customerId}`, {
-        headers: { "ngrok-skip-browser-warning": "true" }
-      });
-      const data = await res.json();
-      const enriched = await enrichPricesInWishlist(data.products || []);
-
-      window.cachedWishlistIds = enriched.map(p => String(p.id));
-      renderWishlist(enriched); 
-    } catch (err) {
-      console.error("❌ Ошибка загрузки wishlist:", err);
-    }
-  };
-
-
-  document.addEventListener("DOMContentLoaded", () => {
-    const toggleBtn = document.getElementById("wishlist-toggle");
-    if (toggleBtn && typeof fetchWishlist === 'function' && window.customerId) {
-      fetchWishlist(window.customerId);
     }
   });
-})();
+}
+
+async function enrichPricesInWishlist(products) {
+  return Promise.all(products.map(async (p) => {
+    if (!p.handle || !p.id) return p;
+
+    try {
+      const res = await fetch(`/products/${p.handle}.js`);
+      const data = await res.json();
+      const variant = data.variants.find(v => String(v.id) === String(p.id));
+
+      if (variant) {
+        return {
+          ...p,
+          price: (variant.price / 100).toFixed(2),
+          currency: Shopify.currency?.active || 'UAH',
+          variantTitle: variant.public_title,
+          image: variant.featured_image?.src || data.featured_image || p.image,
+        };
+      }
+    } catch (err) {
+      console.warn("💰 Не удалось обогатить вариант", p.id, err);
+    }
+
+    return p;
+  }));
+}
+
+
+
+
+
 })();
