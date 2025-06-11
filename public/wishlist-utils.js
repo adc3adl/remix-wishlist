@@ -76,7 +76,7 @@
     if (!window.cachedWishlistIds || !buttons.length) return;
 
     buttons.forEach((btn) => {
-      const id = btn.getAttribute("data-product-id");
+      const id = btn.getAttribute("data-variant-id");
       if (window.cachedWishlistIds.includes(id)) {
         btn.classList.add("active");
       } else {

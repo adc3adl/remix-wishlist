@@ -295,7 +295,7 @@ if (e.target.classList.contains("wishlist-remove")) {
         }
       }, 1000);
 
-      const heartBtn = document.querySelector(`.wishlist-button[data-product-id="${variantId}"]`);
+      const heartBtn = document.querySelector(`.wishlist-button[data-variant-id="${variantId}"]`)
       if (heartBtn) {
         heartBtn.classList.remove("added");
         const svg = heartBtn.querySelector("svg");
