@@ -309,6 +309,16 @@ async function fetchWishlist(customerId) {
   function main() {
     injectWishlistStyles();
 
+      const customerId = getCustomerId();
+  if (customerId) {
+    fetch(`${API_URL}/api/wishlist-get?customerId=${customerId}`)
+      .then(res => res.json())
+      .then(data => {
+        window.cachedWishlistIds = (data.products || []).map(p => String(p.id));
+        syncWishlistButtons();
+      });
+  }
+
 document.addEventListener("click", async function (e) {
   const wishlistBtn = e.target.closest(".wishlist-button");
   if (wishlistBtn) {
