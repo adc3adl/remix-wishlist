@@ -247,55 +247,70 @@ if (prehideStyle) prehideStyle.remove();
           return;
         }
 
-        if (e.target.classList.contains("wishlist-remove")) {
-          e.preventDefault();
-          e.stopPropagation();
-          const item = e.target.closest(".wishlist-item");
-          const variantId = item?.getAttribute("data-variant-id");
-          if (!variantId || !window.customerId) return;
-          try {
-            const res = await fetch(`${API_URL}/api/wishlist`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "ngrok-skip-browser-warning": "true"
-              },
-              body: JSON.stringify({
-                customerId: window.customerId,
-                productId: variantId,
-                action: "remove"
-              })
-            });
-            const result = await res.json();
-            if (result?.status === "ok") {
-              item.classList.add("fading-out");
+if (e.target.classList.contains("wishlist-remove")) {
+  e.preventDefault();
+  e.stopPropagation();
 
-              window.cachedWishlistIds = window.cachedWishlistIds.filter(id => String(id) !== variantId);
+  const item = e.target.closest(".wishlist-item");
+  const variantId = item?.getAttribute("data-variant-id")?.toString();
 
-              syncWishlistButtons();
+  console.log("🧹 Попытка удалить элемент");
+  console.log("🔍 Найден элемент:", item);
+  console.log("🔗 variantId:", variantId);
+  console.log("👤 customerId:", window.customerId);
 
-              setTimeout(() => {
-                item.remove();
-                const remainingItems = modal.querySelectorAll(".wishlist-item").length;
-                if (remainingItems === 0) {
-                  productContainer.innerHTML = "Your wishlist is empty.";
-                }
-              }, 1000);
+  if (!variantId || !window.customerId) {
+    console.warn("❌ Не хватает данных для удаления (variantId или customerId)");
+    return;
+  }
 
-              const heartBtn = document.querySelector(`.wishlist-button[data-product-id="${variantId}"]`);
-              if (heartBtn) {
-                heartBtn.classList.remove("added");
-                const svg = heartBtn.querySelector("svg");
-                if (svg) {
-                  svg.setAttribute("fill", "none");
-                  svg.setAttribute("stroke", "#e63946");
-                }
-              }
-            }
-          } catch (err) {
-            console.error("❌ Error removing product:", err);
-          }
+  try {
+    const res = await fetch(`${API_URL}/api/wishlist`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "ngrok-skip-browser-warning": "true"
+      },
+      body: JSON.stringify({
+        customerId: window.customerId,
+        productId: variantId,
+        action: "remove"
+      })
+    });
+
+    const result = await res.json();
+    console.log("📤 Ответ сервера на удаление:", result);
+
+    if (result?.status === "ok") {
+      item.classList.add("fading-out");
+
+      window.cachedWishlistIds = window.cachedWishlistIds.filter(id => String(id) !== variantId);
+      syncWishlistButtons();
+
+      setTimeout(() => {
+        item.remove();
+        const remainingItems = modal.querySelectorAll(".wishlist-item").length;
+        if (remainingItems === 0) {
+          productContainer.innerHTML = "Your wishlist is empty.";
         }
+      }, 1000);
+
+      const heartBtn = document.querySelector(`.wishlist-button[data-product-id="${variantId}"]`);
+      if (heartBtn) {
+        heartBtn.classList.remove("added");
+        const svg = heartBtn.querySelector("svg");
+        if (svg) {
+          svg.setAttribute("fill", "none");
+          svg.setAttribute("stroke", "#e63946");
+        }
+      }
+    } else {
+      console.warn("❗️ Ошибка удаления на сервере:", result);
+    }
+  } catch (err) {
+    console.error("❌ Ошибка при запросе удаления:", err);
+  }
+}
 
 if (e.target.classList.contains("wishlist-add-to-cart")) {
   e.preventDefault();
