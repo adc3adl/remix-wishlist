@@ -258,6 +258,7 @@ app.get("/api/wishlist-get", async (req, res) => {
         title: p.title,
         variantTitle: v?.title || variant?.title || "",
         url: `/products/${p.handle}`,
+        handle: p.handle, //вместо price
         //price: variant?.price || p.variants[0]?.price || '—',
         currency: 'UAH',
         image: imageObj?.src || "https://placehold.co/80x80?text=No+Image",
