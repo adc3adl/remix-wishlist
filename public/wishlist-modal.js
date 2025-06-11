@@ -439,4 +439,50 @@ fetch("/cart.js")
   } else {
     main();
   }
+  (function () {
+  async function enrichPricesInWishlist(products) {
+    const enriched = await Promise.all(products.map(async (p) => {
+      if (!p.handle || !p.id) return p;
+
+      try {
+        const res = await fetch(`/products/${p.handle}.js`);
+        const data = await res.json();
+        const variant = data.variants.find(v => String(v.id) === String(p.id));
+
+        if (variant) {
+          p.price = (variant.price / 100).toFixed(2);
+          p.currency = Shopify.currency.active || 'USD';
+        }
+      } catch (err) {
+        console.warn("💰 Не удалось обновить цену для", p.id, err);
+      }
+
+      return p;
+    }));
+
+    return enriched;
+  }
+
+  window.fetchWishlist = async function fetchWishlist(customerId) {
+    try {
+      const res = await fetch(`https://remix-wishlist.onrender.com/api/wishlist-get?customerId=${customerId}`, {
+        headers: { "ngrok-skip-browser-warning": "true" }
+      });
+      const data = await res.json();
+      const enriched = await enrichPricesInWishlist(data.products || []);
+
+      window.cachedWishlistIds = enriched.map(p => String(p.id));
+      renderWishlist(enriched);
+    } catch (err) {
+      console.error("❌ Ошибка загрузки wishlist:", err);
+    }
+  };
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const toggleBtn = document.getElementById("wishlist-toggle");
+    if (toggleBtn && typeof fetchWishlist === 'function' && window.customerId) {
+      fetchWishlist(window.customerId);
+    }
+  });
+})();
 })();
