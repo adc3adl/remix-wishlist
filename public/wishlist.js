@@ -214,7 +214,7 @@ function showLoginModal(targetElement) {
       title.textContent = product.title;
 
       const price = document.createElement("span");
-      price.textContent = `${p.price} ${p.currency || "UAH"}`;
+      price.textContent = `${product.price} ${product.currency || "UAH"}`;
 
       const addToCartBtn = document.createElement("button");
       addToCartBtn.textContent = "🛒 Add to cart";
