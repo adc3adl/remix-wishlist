@@ -165,15 +165,32 @@ app.post("/api/wishlist", async (req, res) => {
       headers: { "X-Shopify-Access-Token": token }
       });
 
-      const variant = variantData?.variant;
+  const variant = variantData?.variant;
 
-    wishlist.push({
-      id: variantId,
-      quantity: 1,
-      name: variant?.name || `${variant?.product_title} - ${variant?.title}`,
-      src: variant?.featured_image?.src || "",
-      price: variant?.price || 0
-    });
+let imageSrc = "";
+try {
+  const { data: productData } = await axios.get(`https://${SHOP}/admin/api/2024-01/products/${variant.product_id}.json`, {
+    headers: { "X-Shopify-Access-Token": token }
+  });
+
+  const product = productData?.product;
+  const imageObj =
+    product?.images?.find(img => img.id === variant.image_id) ||
+    product?.image ||
+    product?.images?.[0];
+
+  imageSrc = imageObj?.src || "";
+} catch (e) {
+  console.warn("⚠️ Ошибка получения product images:", e.message);
+}
+
+wishlist.push({
+  id: variantId,
+  quantity: 1,
+  name: variant?.name || `${variant?.product_title} - ${variant?.title}`,
+  src: imageSrc,
+  price: variant?.price || 0
+});
   }
     } else if (action === "remove") {
       wishlist = wishlist.filter(p => (typeof p === "object" ? p.id : p) !== variantId);
