@@ -158,10 +158,23 @@ app.post("/api/wishlist", async (req, res) => {
     if (action === "update") {
       if (!Number.isInteger(quantity) || quantity < 1) return res.status(400).json({ error: "Invalid quantity" });
       wishlist = wishlist.map(p => (typeof p === "object" && p.id === variantId ? { ...p, quantity } : (p === variantId ? { id: variantId, quantity } : p)));
-    } else if (action === "add") {
+}     else if (action === "add") {
       if (!wishlist.some(p => (typeof p === "object" ? p.id : p) === variantId)) {
-        wishlist.push({ id: variantId, quantity: 1 });
-      }
+      // Получаем данные варианта
+      const { data: variantData } = await axios.get(`https://${SHOP}/admin/api/2024-01/variants/${variantId}.json`, {
+      headers: { "X-Shopify-Access-Token": token }
+      });
+
+      const variant = variantData?.variant;
+
+    wishlist.push({
+      id: variantId,
+      quantity: 1,
+      name: variant?.name || `${variant?.product_title} - ${variant?.title}`,
+      src: variant?.featured_image?.src || "",
+      price: variant?.price || 0
+    });
+  }
     } else if (action === "remove") {
       wishlist = wishlist.filter(p => (typeof p === "object" ? p.id : p) !== variantId);
     }
