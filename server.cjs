@@ -40,8 +40,13 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use("/webhooks/products/update", bodyParser.raw({ type: "*/*" }));
-app.use(bodyParser.json());
+app.use(cors({ origin: true, credentials: true }));
+app.use((req, res, next) => {
+  if (req.path === "/webhooks/products/update") {
+    return next(); 
+  }
+  bodyParser.json()(req, res, next); 
+});
 
 // === База данных
 const db = new Database('./shopify.db');
