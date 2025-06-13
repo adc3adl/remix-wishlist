@@ -1,6 +1,7 @@
 /// server.cjs
 
 require("dotenv").config();
+const getRawBody = require("raw-body");
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
@@ -40,7 +41,12 @@ app.use((req, res, next) => {
 });
 
 app.use(cors({ origin: true, credentials: true }));
-app.use(bodyParser.json());
+app.use((req, res, next) => {
+  if (req.path === "/webhooks/products/update") {
+    return next(); 
+  }
+  bodyParser.json()(req, res, next); 
+});
 
 // === База данных
 const db = new Database('./shopify.db');
@@ -96,7 +102,23 @@ app.get("/auth/callback", async (req, res) => {
 
     const scriptFiles = ["wishlist-utils.js", "wishlist-modal.js", "wishlist.js", "add-to-cart.js"];
     const results = [];
+// Удаляем старые скрипты, если src ведёт на наш APP_URL
+try {
+  const { data } = await axios.get(`https://${shop}/admin/api/2024-01/script_tags.json`, {
+    headers: { "X-Shopify-Access-Token": accessToken }
+  });
 
+  for (const tag of data.script_tags) {
+    if (tag.src.includes(APP_URL)) {
+      await axios.delete(`https://${shop}/admin/api/2024-01/script_tags/${tag.id}.json`, {
+        headers: { "X-Shopify-Access-Token": accessToken }
+      });
+      console.log(`🧹 Удалён ScriptTag #${tag.id}`);
+    }
+  }
+} catch (e) {
+  console.warn("⚠️ Ошибка очистки старых ScriptTag:", e.message);
+}
     for (const scriptName of scriptFiles) {
       const scriptUrl = `${APP_URL}/${scriptName}`;
       try {
@@ -110,8 +132,7 @@ app.get("/auth/callback", async (req, res) => {
         });
         results.push(`<li style="color:green">✅ ${scriptName} подключён</li>`);
       } catch (e) {
-        const errorText = JSON.stringify(e.response?.data?.errors || e.message);
-        results.push(`<li style="color:red">❌ ${scriptName}: ${errorText}</li>`);
+        results.push(`<li style="color:red">❌ ${scriptName}: ${e.response?.data?.errors || e.message}</li>`);
       }
     }
 
@@ -304,17 +325,135 @@ app.get("/api/wishlist-get", async (req, res) => {
   }
 });
 
-// === Debug endpoint
-app.get("/debug/all-events", (req, res) => {
+// === Webhook: update metafields when product variants are changed
+app.post("/webhooks/products/update", async (req, res) => {
   try {
-    const rows = db.prepare("SELECT * FROM add_to_cart_events ORDER BY created_at DESC").all();
-    res.json(rows);
+    const rawBody = await getRawBody(req);
+    const product = JSON.parse(rawBody.toString("utf8"));
+    console.log("📦 Webhook: products/update", product?.id, product?.title);
+
+    const tokenRow = db.prepare("SELECT token FROM shop_tokens WHERE shop = ?").get(SHOP);
+    const token = tokenRow?.token;
+    if (!token) return res.status(401).send("No access token");
+
+    const { data: fullProductData } = await axios.get(
+      `https://${SHOP}/admin/api/2024-01/products/${product.id}.json`,
+      {
+        headers: { "X-Shopify-Access-Token": token }
+      }
+    );
+
+    const fullProduct = fullProductData.product;
+    const updatedVariants = fullProduct.variants || [];
+    const productTitle = fullProduct.title;
+
+    console.log("🧩 Обновлённые варианты:", updatedVariants.map(v => v.id));
+
+    const { data: customersData } = await axios.get(`https://${SHOP}/admin/api/2024-01/customers.json`, {
+      headers: { "X-Shopify-Access-Token": token }
+    });
+
+    for (const customer of customersData.customers) {
+      const customerId = customer.id;
+      console.log("👤 Чекаем кастомера:", customerId);
+
+      const { data: metafieldsData } = await axios.get(`https://${SHOP}/admin/api/2024-01/customers/${customerId}/metafields.json`, {
+        headers: { "X-Shopify-Access-Token": token }
+      });
+
+      const metafield = metafieldsData.metafields.find(f => f.namespace === "custom_data" && f.key === "wishlist");
+      if (!metafield?.value) {
+        console.log("📫 У кастомера нет wishlist");
+        continue;
+      }
+
+      let wishlist = JSON.parse(metafield.value);
+      console.log("📥 Wishlist до:", JSON.stringify(wishlist));
+      let changed = false;
+
+      for (const variant of updatedVariants) {
+        const cleanVariant = JSON.parse(JSON.stringify(variant));
+
+        const imageSrc =
+          cleanVariant.featured_image?.src ||
+          fullProduct.image?.src ||
+          fullProduct.images?.[0]?.src || "";
+
+        const newName = cleanVariant.name || `${productTitle} - ${cleanVariant.title || ""}`;
+        const newPrice = parseFloat(cleanVariant.price) || 0;
+        const newSrc = imageSrc;
+
+        console.log(`🧩 Проверка варианта ${cleanVariant.id}`);
+        console.log(`➡️ Новые данные: name="${newName}", price="${newPrice}", src="${newSrc}"`);
+
+        wishlist = wishlist.map(entry => {
+          const entryId = typeof entry === "object" ? entry.id : entry;
+          if (entryId === cleanVariant.id) {
+            const oldName = typeof entry === "object" ? entry.name || "" : "";
+            const oldPrice = typeof entry === "object" ? parseFloat(entry.price) || 0 : 0;
+            const oldSrc = typeof entry === "object" ? entry.src || "" : "";
+
+            const nameChanged = oldName !== newName;
+            const priceChanged = oldPrice !== newPrice;
+            const srcChanged = oldSrc !== newSrc;
+
+            const hasChanged = nameChanged || priceChanged || srcChanged;
+
+            console.log("🧪 Сравнение варианта:", {
+              id: entryId,
+              oldName, newName, nameChanged,
+              oldPrice, newPrice, priceChanged,
+              oldSrc, newSrc, srcChanged,
+              hasChanged
+            });
+
+            if (hasChanged) {
+              changed = true;
+              return {
+                id: entryId,
+                name: newName,
+                price: newPrice,
+                src: newSrc,
+                quantity: typeof entry === "object" ? entry.quantity || 1 : 1
+              };
+            }
+          }
+          return entry;
+        });
+      }
+
+      if (changed) {
+        console.log("📤 Wishlist после:", JSON.stringify(wishlist));
+
+        try {
+          await axios.put(`https://${SHOP}/admin/api/2024-01/metafields/${metafield.id}.json`, {
+            metafield: {
+              id: metafield.id,
+              value: JSON.stringify(wishlist),
+              type: "json"
+            }
+          }, {
+            headers: {
+              "X-Shopify-Access-Token": token,
+              "Content-Type": "application/json"
+            }
+          });
+
+          console.log(`✅ Обновлён wishlist для customer ${customerId}`);
+        } catch (putErr) {
+          console.error(`❌ PUT wishlist error для customer ${customerId}:`, putErr.response?.data || putErr.message);
+        }
+      } else {
+        console.log("⛔️ Изменений нет — пропускаем обновление metafield");
+      }
+    }
+
+    res.status(200).send("✅ Wishlist metafields update завершён");
   } catch (err) {
-    console.error("❌ Error in /debug/all-events:", err.message);
-    res.status(500).json({ error: "Failed to fetch events" });
+    console.error("❌ Ошибка обработки webhook:", err.response?.data || err.message);
+    res.status(500).send("Webhook error");
   }
 });
-
 // === Remix fallback
 app.all(
   "*",
