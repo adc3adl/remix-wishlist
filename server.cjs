@@ -331,68 +331,70 @@ app.post("/webhooks/products/update", async (req, res) => {
     const tokenRow = db.prepare("SELECT token FROM shop_tokens WHERE shop = ?").get(SHOP);
     const token = tokenRow?.token;
     if (!token) return res.status(401).send("No access token");
-for (const variant of product.variants || []) {
-  console.log(`🔄 Обработка варианта ${variant.id}: ${variant.title}`);
 
-  const variantName = `${product.title} - ${variant.title}`;
-  const imageSrc =
-    variant.featured_image?.src ||
-    product.image?.src ||
-    product.images?.[0]?.src ||
-    "";
+    for (const variant of product.variants || []) {
+      console.log(`🔄 Обработка варианта ${variant.id}: ${variant.title}`);
 
-  const metafields = [
-    { namespace: "custom", key: "name", value: variantName, type: "single_line_text_field" },
-    { namespace: "custom", key: "price", value: variant.price?.toString() || "0", type: "number_decimal" },
-    { namespace: "custom", key: "src", value: imageSrc, type: "url" }
-  ];
+      const variantName = `${product.title} - ${variant.title}`;
+      const imageSrc =
+        variant.featured_image?.src ||
+        product.image?.src ||
+        product.images?.[0]?.src ||
+        "";
 
-  try {
-    const existingRes = await axios.get(`https://${SHOP}/admin/api/2024-01/variants/${variant.id}/metafields.json`, {
-      headers: { "X-Shopify-Access-Token": token }
-    });
+      const metafields = [
+        { namespace: "custom", key: "name", value: variantName, type: "single_line_text_field" },
+        { namespace: "custom", key: "price", value: variant.price?.toString() || "0", type: "number_decimal" },
+        { namespace: "custom", key: "src", value: imageSrc, type: "url" }
+      ];
 
-    const existingFields = existingRes.data.metafields;
+      for (const metafield of metafields) {
+        try {
+// Сначала получить текущие метаполя варианта
+const existingRes = await axios.get(`https://${SHOP}/admin/api/2024-01/variants/${variant.id}/metafields.json`, {
+  headers: { "X-Shopify-Access-Token": token }
+});
 
-    for (const metafield of metafields) {
-      const existing = existingFields.find(f => f.namespace === metafield.namespace && f.key === metafield.key);
+const existingFields = existingRes.data.metafields;
 
-      if (existing) {
-        await axios.put(
-          `https://${SHOP}/admin/api/2024-01/metafields/${existing.id}.json`,
-          {
-            metafield: {
-              id: existing.id,
-              value: metafield.value,
-              type: metafield.type
-            }
-          },
-          {
-            headers: {
-              "X-Shopify-Access-Token": token,
-              "Content-Type": "application/json"
-            }
-          }
-        );
-        console.log(`✅ Метаполе '${metafield.key}' обновлено (PUT) для варианта ${variant.id}`);
-      } else {
-        await axios.post(
-          `https://${SHOP}/admin/api/2024-01/variants/${variant.id}/metafields.json`,
-          { metafield },
-          {
-            headers: {
-              "X-Shopify-Access-Token": token,
-              "Content-Type": "application/json"
-            }
-          }
-        );
-        console.log(`✅ Метаполе '${metafield.key}' создано (POST) для варианта ${variant.id}`);
+for (const metafield of metafields) {
+  const existing = existingFields.find(f => f.namespace === metafield.namespace && f.key === metafield.key);
+
+  if (existing) {
+    // Обновление через PUT
+    await axios.put(
+      `https://${SHOP}/admin/api/2024-01/metafields/${existing.id}.json`,
+      { metafield: { id: existing.id, value: metafield.value, type: metafield.type } },
+      {
+        headers: {
+          "X-Shopify-Access-Token": token,
+          "Content-Type": "application/json"
+        }
       }
-    }
-  } catch (err) {
-    console.error(`❌ Ошибка обновления метаполей варианта ${variant.id}:`, err.response?.data || err.message);
+    );
+    console.log(`✅ Метаполе '${metafield.key}' обновлено (PUT) для варианта ${variant.id}`);
+  } else {
+    // Создание через POST
+    await axios.post(
+      `https://${SHOP}/admin/api/2024-01/variants/${variant.id}/metafields.json`,
+      { metafield },
+      {
+        headers: {
+          "X-Shopify-Access-Token": token,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+    console.log(`✅ Метаполе '${metafield.key}' создано (POST) для варианта ${variant.id}`);
   }
 }
+          console.log(`✅ Метаполе '${metafield.key}' обновлено для варианта ${variant.id}`);
+        } catch (err) {
+          console.error(`❌ Ошибка обновления метаполя ${metafield.key} для варианта ${variant.id}:`, err.response?.data || err.message);
+        }
+      }
+    }
+
     res.status(200).send("✅ Metafields updated");
   } catch (err) {
     console.error("❌ Ошибка обработки webhook:", err.message);
