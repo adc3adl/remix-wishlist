@@ -357,35 +357,38 @@ app.post("/webhooks/products/update", async (req, res) => {
       let changed = false;
 
       for (const variant of updatedVariants) {
-        const imageSrc =
-          variant.featured_image?.src ||
-          fullProduct.image?.src ||
-          fullProduct.images?.[0]?.src ||
-          "";
+        const cleanVariant = JSON.parse(JSON.stringify(variant));
 
-        console.log("🖼 imageSrc для", variant.id, "=>", imageSrc);
+        const imageSrc =
+          cleanVariant.featured_image?.src ||
+          fullProduct.image?.src ||
+          fullProduct.images?.[0]?.src || "";
+
+        console.log("🖼 imageSrc для", cleanVariant.id, "=>", imageSrc);
 
         wishlist = wishlist.map(entry => {
           const entryId = typeof entry === "object" ? entry.id : entry;
-          if (entryId === variant.id) {
-            const newName = `${productTitle} - ${variant.name || variant.title || "?"}`;
-            const newPrice = parseFloat(variant.price);
+          if (entryId === cleanVariant.id) {
+            const newName = cleanVariant.name || cleanVariant.title || productTitle;
+            const newPrice = parseFloat(cleanVariant.price) || 0;
             const newSrc = imageSrc;
 
             const oldName = typeof entry === "object" ? entry.name : undefined;
             const oldPrice = typeof entry === "object" ? parseFloat(entry.price) : undefined;
             const oldSrc = typeof entry === "object" ? entry.src : undefined;
 
-            const hasChanged =
-              oldName !== newName ||
-              isNaN(oldPrice) || isNaN(newPrice) || oldPrice !== newPrice ||
-              oldSrc !== newSrc;
+            const nameChanged = oldName !== newName;
+            const priceChanged = isNaN(oldPrice) || isNaN(newPrice) || oldPrice !== newPrice;
+            const srcChanged = oldSrc !== newSrc;
 
-            console.log("🧪 Проверка изменений:", {
-              id: entryId, hasChanged,
-              oldName, newName,
-              oldPrice, newPrice,
-              oldSrc, newSrc
+            const hasChanged = nameChanged || priceChanged || srcChanged;
+
+            console.log("🧪 Сравнение варианта:", {
+              id: entryId,
+              nameChanged, oldName, newName,
+              priceChanged, oldPrice, newPrice,
+              srcChanged, oldSrc, newSrc,
+              hasChanged
             });
 
             if (hasChanged) {
