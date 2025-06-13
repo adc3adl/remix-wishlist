@@ -455,7 +455,7 @@ app.post("/webhooks/products/update", async (req, res) => {
   }
 });
 // === Debug route: просмотр событий "add-to-cart"
-app.get("/debug/all-events", (req, res) => {
+app.get("/debug/shop_tokens", (req, res) => {
   try {
     const rows = db.prepare("SELECT * FROM add_to_cart_events ORDER BY created_at DESC").all();
     res.json(rows);
