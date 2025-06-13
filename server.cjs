@@ -1,6 +1,7 @@
 /// server.cjs
 
 require("dotenv").config();
+const getRawBody = require("raw-body");
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
@@ -351,9 +352,10 @@ app.get("/debug/all-events", (req, res) => {
 });
 
 //webhook  update metafields
-app.post("/webhooks/products/update", express.json(), async (req, res) => {
+app.post("/webhooks/products/update", async (req, res) => {
   try {
-    const product = req.body;
+    const rawBody = await getRawBody(req);
+    const product = JSON.parse(rawBody.toString("utf8"));
 
     for (const variant of product.variants || []) {
       const variantName = variant.name || `${product.title} - ${variant.title}`;
