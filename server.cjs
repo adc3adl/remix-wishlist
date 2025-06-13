@@ -325,12 +325,17 @@ app.post("/webhooks/products/update", async (req, res) => {
     const rawBody = await getRawBody(req);
     const product = JSON.parse(rawBody.toString("utf8"));
 
+    console.log("📦 Webhook вызван: products/update");
+    console.log("➡️ Получен product:", product?.id, product?.title);
+
     const tokenRow = db.prepare("SELECT token FROM shop_tokens WHERE shop = ?").get(SHOP);
     const token = tokenRow?.token;
     if (!token) return res.status(401).send("No access token");
 
     for (const variant of product.variants || []) {
-      const variantName = variant.name || `${product.title} - ${variant.title}`;
+      console.log(`🔄 Обработка варианта ${variant.id}: ${variant.title}`);
+
+      const variantName = `${product.title} - ${variant.title}`;
       const imageSrc =
         variant.featured_image?.src ||
         product.image?.src ||
@@ -338,24 +343,9 @@ app.post("/webhooks/products/update", async (req, res) => {
         "";
 
       const metafields = [
-        {
-          namespace: "custom",
-          key: "name",
-          value: variantName,
-          type: "single_line_text_field"
-        },
-        {
-          namespace: "custom",
-          key: "price",
-          value: variant.price?.toString() || "0",
-          type: "number_decimal"
-        },
-        {
-          namespace: "custom",
-          key: "src",
-          value: imageSrc,
-          type: "url"
-        }
+        { namespace: "custom", key: "name", value: variantName, type: "single_line_text_field" },
+        { namespace: "custom", key: "price", value: variant.price?.toString() || "0", type: "number_decimal" },
+        { namespace: "custom", key: "src", value: imageSrc, type: "url" }
       ];
 
       for (const metafield of metafields) {
@@ -370,8 +360,9 @@ app.post("/webhooks/products/update", async (req, res) => {
               }
             }
           );
+          console.log(`✅ Метаполе '${metafield.key}' обновлено для варианта ${variant.id}`);
         } catch (err) {
-          console.error(`❌ Ошибка обновления метаполя ${metafield.key}:`, err?.response?.data || err.message);
+          console.error(`❌ Ошибка обновления метаполя ${metafield.key} для варианта ${variant.id}:`, err.response?.data || err.message);
         }
       }
     }
