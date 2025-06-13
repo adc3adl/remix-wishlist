@@ -311,6 +311,8 @@ app.get("/api/wishlist-get", async (req, res) => {
 
 // === Debug endpoint
 //metafields update
+// === Debug endpoint
+//metafields update
 app.post("/webhooks/products/update", async (req, res) => {
   try {
     const rawBody = await getRawBody(req);
@@ -357,51 +359,37 @@ app.post("/webhooks/products/update", async (req, res) => {
       let changed = false;
 
       for (const variant of updatedVariants) {
-        const cleanVariant = JSON.parse(JSON.stringify(variant));
+        const variantId = variant.id;
 
-        const imageSrc =
-          cleanVariant.featured_image?.src ||
-          fullProduct.image?.src ||
-          fullProduct.images?.[0]?.src || "";
-
-        console.log("🖼 imageSrc для", cleanVariant.id, "=>", imageSrc);
+        const newName = `${productTitle} - ${variant.title || variant.name || ""}`;
+        const newPrice = parseFloat(variant.price || 0).toFixed(2);
+        const newSrc = variant.featured_image?.src || fullProduct.image?.src || fullProduct.images?.[0]?.src || "";
 
         wishlist = wishlist.map(entry => {
-          const entryId = typeof entry === "object" ? entry.id : entry;
-          if (entryId === cleanVariant.id) {
-            const newName = cleanVariant.name || cleanVariant.title || productTitle;
-            const newPrice = parseFloat(cleanVariant.price) || 0;
-            const newSrc = imageSrc;
+          if (typeof entry !== "object" || entry.id !== variantId) return entry;
 
-            const oldName = typeof entry === "object" ? entry.name : undefined;
-            const oldPrice = typeof entry === "object" ? parseFloat(entry.price) : undefined;
-            const oldSrc = typeof entry === "object" ? entry.src : undefined;
+          const oldName = entry.name || "";
+          const oldPrice = parseFloat(entry.price || 0).toFixed(2);
+          const oldSrc = entry.src || "";
 
-            const nameChanged = oldName !== newName;
-            const priceChanged = isNaN(oldPrice) || isNaN(newPrice) || oldPrice !== newPrice;
-            const srcChanged = oldSrc !== newSrc;
+          const hasChanged = oldName !== newName || oldPrice !== newPrice || oldSrc !== newSrc;
 
-            const hasChanged = nameChanged || priceChanged || srcChanged;
-
-            console.log("🧪 Сравнение варианта:", {
-              id: entryId,
-              nameChanged, oldName, newName,
-              priceChanged, oldPrice, newPrice,
-              srcChanged, oldSrc, newSrc,
-              hasChanged
+          if (hasChanged) {
+            changed = true;
+            console.log("🔁 Обновление варианта:", {
+              id: variantId,
+              oldName, newName,
+              oldPrice, newPrice,
+              oldSrc, newSrc
             });
-
-            if (hasChanged) {
-              changed = true;
-              return {
-                id: entryId,
-                name: newName,
-                price: newPrice,
-                src: newSrc,
-                quantity: typeof entry === "object" ? entry.quantity || 1 : 1
-              };
-            }
+            return {
+              ...entry,
+              name: newName,
+              price: newPrice,
+              src: newSrc
+            };
           }
+
           return entry;
         });
       }
@@ -438,6 +426,7 @@ app.post("/webhooks/products/update", async (req, res) => {
     res.status(500).send("Webhook error");
   }
 });
+
 // === Remix fallback
 app.all(
   "*",
