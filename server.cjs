@@ -454,6 +454,16 @@ app.post("/webhooks/products/update", async (req, res) => {
     res.status(500).send("Webhook error");
   }
 });
+// === Debug route: просмотр событий "add-to-cart"
+app.get("/debug/all-events", (req, res) => {
+  try {
+    const rows = db.prepare("SELECT * FROM add_to_cart_events ORDER BY created_at DESC").all();
+    res.json(rows);
+  } catch (err) {
+    console.error("❌ Ошибка при чтении из БД:", err.message);
+    res.status(500).json({ error: "Ошибка чтения базы данных" });
+  }
+});
 // === Remix fallback
 app.all(
   "*",
