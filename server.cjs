@@ -20,6 +20,34 @@ const APP_URL = process.env.APP_URL;
 const SCOPES = process.env.SCOPES || "write_script_tags,read_customers,write_customers";
 const SHOP = process.env.SHOPIFY_SHOP;
 
+
+async function registerWebhooks() {
+  const webhookUrl = `${APP_URL}/webhooks/products/update`;
+
+  try {
+    await axios.post(
+      `https://${SHOP}/admin/api/${SHOPIFY_API_VERSION}/webhooks.json`,
+      {
+        webhook: {
+          topic: "products/update",
+          address: webhookUrl,
+          format: "json"
+        }
+      },
+      {
+        headers: {
+          "X-Shopify-Access-Token": TOKEN,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+    console.log("✅ Webhook products/update зарегистрирован");
+  } catch (error) {
+    console.error("❌ Ошибка регистрации webhook:", error.response?.data || error.message);
+  }
+}
+
+
 // === Мидлвары
 app.use((req, res, next) => {
   if (req.path.endsWith(".js")) req.url = req.path;
@@ -314,6 +342,64 @@ app.get("/debug/all-events", (req, res) => {
   }
 });
 
+//webhook  update metafields
+app.post("/webhooks/products/update", express.json(), async (req, res) => {
+  try {
+    const product = req.body;
+
+    for (const variant of product.variants || []) {
+      const variantName = variant.name || `${product.title} - ${variant.title}`;
+      const imageSrc =
+        variant.featured_image?.src ||
+        product.image?.src ||
+        product.images?.[0]?.src ||
+        "";
+
+      const metafields = [
+        {
+          namespace: "custom",
+          key: "name",
+          value: variantName,
+          type: "single_line_text_field"
+        },
+        {
+          namespace: "custom",
+          key: "price",
+          value: variant.price?.toString() || "0",
+          type: "number_decimal"
+        },
+        {
+          namespace: "custom",
+          key: "src",
+          value: imageSrc,
+          type: "url"
+        }
+      ];
+
+      for (const metafield of metafields) {
+        try {
+          await axios.post(
+            `https://${SHOP}/admin/api/${SHOPIFY_API_VERSION}/variants/${variant.id}/metafields.json`,
+            { metafield },
+            {
+              headers: {
+                "X-Shopify-Access-Token": TOKEN,
+                "Content-Type": "application/json"
+              }
+            }
+          );
+        } catch (err) {
+          console.error(`❌ Ошибка обновления метаполя ${metafield.key}:`, err?.response?.data || err.message);
+        }
+      }
+    }
+
+    res.status(200).send("Metafields updated");
+  } catch (err) {
+    console.error("❌ Ошибка обработки webhook:", err.message);
+    res.status(500).send("Ошибка сервера");
+  }
+});
 // === Remix fallback
 app.all(
   "*",
@@ -326,4 +412,5 @@ app.all(
 // === Запуск
 app.listen(PORT, () => {
   console.log(`✅ Remix + Express сервер запущен: http://localhost:${PORT}`);
+  registerWebhooks();
 });
