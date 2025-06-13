@@ -1,6 +1,7 @@
 /// server.cjs
 
 require("dotenv").config();
+const getRawBody = require("raw-body");
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
@@ -40,7 +41,12 @@ app.use((req, res, next) => {
 });
 
 app.use(cors({ origin: true, credentials: true }));
-app.use(bodyParser.json());
+app.use((req, res, next) => {
+  if (req.path === "/webhooks/products/update") {
+    return next(); 
+  }
+  bodyParser.json()(req, res, next); 
+});
 
 // === База данных
 const db = new Database('./shopify.db');
@@ -313,7 +319,69 @@ app.get("/debug/all-events", (req, res) => {
     res.status(500).json({ error: "Failed to fetch events" });
   }
 });
+//update metafields
+app.post("/webhooks/products/update", async (req, res) => {
+  try {
+    const rawBody = await getRawBody(req);
+    const product = JSON.parse(rawBody.toString("utf8"));
 
+    const tokenRow = db.prepare("SELECT token FROM shop_tokens WHERE shop = ?").get(SHOP);
+    const token = tokenRow?.token;
+    if (!token) return res.status(401).send("No access token");
+
+    for (const variant of product.variants || []) {
+      const variantName = variant.name || `${product.title} - ${variant.title}`;
+      const imageSrc =
+        variant.featured_image?.src ||
+        product.image?.src ||
+        product.images?.[0]?.src ||
+        "";
+
+      const metafields = [
+        {
+          namespace: "custom",
+          key: "name",
+          value: variantName,
+          type: "single_line_text_field"
+        },
+        {
+          namespace: "custom",
+          key: "price",
+          value: variant.price?.toString() || "0",
+          type: "number_decimal"
+        },
+        {
+          namespace: "custom",
+          key: "src",
+          value: imageSrc,
+          type: "url"
+        }
+      ];
+
+      for (const metafield of metafields) {
+        try {
+          await axios.post(
+            `https://${SHOP}/admin/api/2024-01/variants/${variant.id}/metafields.json`,
+            { metafield },
+            {
+              headers: {
+                "X-Shopify-Access-Token": token,
+                "Content-Type": "application/json"
+              }
+            }
+          );
+        } catch (err) {
+          console.error(`❌ Ошибка обновления метаполя ${metafield.key}:`, err?.response?.data || err.message);
+        }
+      }
+    }
+
+    res.status(200).send("✅ Metafields updated");
+  } catch (err) {
+    console.error("❌ Ошибка обработки webhook:", err.message);
+    res.status(500).send("Webhook error");
+  }
+});
 // === Remix fallback
 app.all(
   "*",
