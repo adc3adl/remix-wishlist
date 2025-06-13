@@ -19,6 +19,7 @@ const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET;
 const APP_URL = process.env.APP_URL;
 const SCOPES = process.env.SCOPES || "write_script_tags,read_customers,write_customers";
 const SHOP = process.env.SHOPIFY_SHOP;
+const SHOPIFY_API_VERSION = "2024-01"; 
 
 
 async function registerWebhooks() {
