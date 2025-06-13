@@ -310,6 +310,7 @@ app.get("/api/wishlist-get", async (req, res) => {
 });
 
 // === Debug endpoint
+//metafields update
 app.post("/webhooks/products/update", async (req, res) => {
   try {
     const rawBody = await getRawBody(req);
@@ -375,30 +376,26 @@ app.post("/webhooks/products/update", async (req, res) => {
             const oldPrice = typeof entry === "object" ? parseFloat(entry.price) : undefined;
             const oldSrc = typeof entry === "object" ? entry.src : undefined;
 
-            console.log("🧪 Сравнение варианта", variant.id, {
-              oldName, newName,
-              oldPrice, newPrice,
-              oldSrc, newSrc
-            });
-
             const hasChanged =
               oldName !== newName ||
               isNaN(oldPrice) || isNaN(newPrice) || oldPrice !== newPrice ||
               oldSrc !== newSrc;
 
+            console.log("🧪 Проверка изменений:", {
+              id: entryId, hasChanged,
+              oldName, newName,
+              oldPrice, newPrice,
+              oldSrc, newSrc
+            });
+
             if (hasChanged) {
-              console.log("💡 Обновление варианта:", {
-                id: entryId,
-                oldName, newName,
-                oldPrice, newPrice,
-                oldSrc, newSrc
-              });
               changed = true;
               return {
-                ...entry,
+                id: entryId,
                 name: newName,
                 price: newPrice,
-                src: newSrc
+                src: newSrc,
+                quantity: typeof entry === "object" ? entry.quantity || 1 : 1
               };
             }
           }
