@@ -110,7 +110,8 @@ app.get("/auth/callback", async (req, res) => {
         });
         results.push(`<li style="color:green">✅ ${scriptName} подключён</li>`);
       } catch (e) {
-        results.push(`<li style="color:red">❌ ${scriptName}: ${e.response?.data?.errors || e.message}</li>`);
+        const errorText = JSON.stringify(e.response?.data?.errors || e.message);
+        results.push(`<li style="color:red">❌ ${scriptName}: ${errorText}</li>`);
       }
     }
 
