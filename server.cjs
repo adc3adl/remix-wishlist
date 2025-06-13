@@ -310,27 +310,16 @@ app.get("/api/wishlist-get", async (req, res) => {
 });
 
 // === Debug endpoint
-app.get("/debug/all-events", (req, res) => {
-  try {
-    const rows = db.prepare("SELECT * FROM add_to_cart_events ORDER BY created_at DESC").all();
-    res.json(rows);
-  } catch (err) {
-    console.error("❌ Error in /debug/all-events:", err.message);
-    res.status(500).json({ error: "Failed to fetch events" });
-  }
-});
-// update metafields
 app.post("/webhooks/products/update", async (req, res) => {
   try {
     const rawBody = await getRawBody(req);
     const product = JSON.parse(rawBody.toString("utf8"));
-    console.log("📦 Webhook: products/update", product?.id, product?.title);
+    console.log("\ud83d\udce6 Webhook: products/update", product?.id, product?.title);
 
     const tokenRow = db.prepare("SELECT token FROM shop_tokens WHERE shop = ?").get(SHOP);
     const token = tokenRow?.token;
     if (!token) return res.status(401).send("No access token");
 
-    // Дозапрашиваем полные данные продукта с вариантами
     const { data: fullProductData } = await axios.get(
       `https://${SHOP}/admin/api/2024-01/products/${product.id}.json`,
       {
@@ -342,30 +331,28 @@ app.post("/webhooks/products/update", async (req, res) => {
     const updatedVariants = fullProduct.variants || [];
     const productTitle = fullProduct.title;
 
-    console.log("🧩 Обновлённые варианты:", updatedVariants.map(v => v.id));
+    console.log("\ud83e\udde9 \u041e\u0431\u043d\u043e\u0432\u043b\u0451\u043d\u043d\u044b\u0435 \u0432\u0430\u0440\u0438\u0430\u043d\u0442\u044b:", updatedVariants.map(v => v.id));
 
-    // Получаем всех кастомеров с wishlist
     const { data: customersData } = await axios.get(`https://${SHOP}/admin/api/2024-01/customers.json`, {
       headers: { "X-Shopify-Access-Token": token }
     });
 
     for (const customer of customersData.customers) {
       const customerId = customer.id;
-      console.log("👤 Чекаем кастомера:", customerId);
+      console.log("\ud83d\udc64 \u0427\u0435\u043a\u0430\u0435\u043c \u043a\u0430\u0441\u0442\u043e\u043c\u0435\u0440\u0430:", customerId);
 
-      // Получаем wishlist метаполе
       const { data: metafieldsData } = await axios.get(`https://${SHOP}/admin/api/2024-01/customers/${customerId}/metafields.json`, {
         headers: { "X-Shopify-Access-Token": token }
       });
 
       const metafield = metafieldsData.metafields.find(f => f.namespace === "custom_data" && f.key === "wishlist");
       if (!metafield?.value) {
-        console.log("📭 У кастомера нет wishlist");
+        console.log("\ud83d\udceb \u0423 \u043a\u0430\u0441\u0442\u043e\u043c\u0435\u0440\u0430 \u043d\u0435\u0442 wishlist");
         continue;
       }
 
       let wishlist = JSON.parse(metafield.value);
-      console.log("📥 Wishlist до:", JSON.stringify(wishlist));
+      console.log("\ud83d\udce5 Wishlist \u0434\u043e:", JSON.stringify(wishlist));
       let changed = false;
 
       for (const variant of updatedVariants) {
@@ -375,17 +362,17 @@ app.post("/webhooks/products/update", async (req, res) => {
           fullProduct.images?.[0]?.src ||
           "";
 
-        console.log("🖼 imageSrc для", variant.id, "=>", imageSrc);
+        console.log("\ud83d\uddbc imageSrc \u0434\u043b\u044f", variant.id, "=>", imageSrc);
 
         wishlist = wishlist.map(entry => {
           const entryId = typeof entry === "object" ? entry.id : entry;
           if (entryId === variant.id) {
             const newName = `${productTitle} - ${variant.name || "?"}`;
-            const newPrice = Number(variant.price);
+            const newPrice = parseFloat(variant.price);
             const newSrc = imageSrc;
 
             const oldName = typeof entry === "object" ? entry.name : undefined;
-            const oldPrice = typeof entry === "object" ? Number(entry.price) : undefined;
+            const oldPrice = typeof entry === "object" ? parseFloat(entry.price) : undefined;
             const oldSrc = typeof entry === "object" ? entry.src : undefined;
 
             const hasChanged =
@@ -394,7 +381,7 @@ app.post("/webhooks/products/update", async (req, res) => {
               oldSrc !== newSrc;
 
             if (hasChanged) {
-              console.log("💡 Обновление варианта:", {
+              console.log("\ud83d\udca1 \u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0432\u0430\u0440\u0438\u0430\u043d\u0442\u0430:", {
                 id: entryId,
                 oldName, newName,
                 oldPrice, newPrice,
@@ -414,7 +401,7 @@ app.post("/webhooks/products/update", async (req, res) => {
       }
 
       if (changed) {
-        console.log("📤 Wishlist после:", JSON.stringify(wishlist));
+        console.log("\ud83d\udce4 Wishlist \u043f\u043e\u0441\u043b\u0435:", JSON.stringify(wishlist));
 
         try {
           await axios.put(`https://${SHOP}/admin/api/2024-01/metafields/${metafield.id}.json`, {
@@ -430,18 +417,18 @@ app.post("/webhooks/products/update", async (req, res) => {
             }
           });
 
-          console.log(`✅ Обновлён wishlist для customer ${customerId}`);
+          console.log(`\u2705 \u041e\u0431\u043d\u043e\u0432\u043b\u0451\u043d wishlist \u0434\u043b\u044f customer ${customerId}`);
         } catch (putErr) {
-          console.error(`❌ PUT wishlist error для customer ${customerId}:`, putErr.response?.data || putErr.message);
+          console.error(`\u274c PUT wishlist error \u0434\u043b\u044f customer ${customerId}:`, putErr.response?.data || putErr.message);
         }
       } else {
-        console.log("⛔️ Изменений нет — пропускаем обновление metafield");
+        console.log("\u26d4\ufe0f \u0418\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u0439 \u043d\u0435\u0442 \u2014 \u043f\u0440\u043e\u043f\u0443\u0441\u043a\u0430\u0435\u043c \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 metafield");
       }
     }
 
-    res.status(200).send("✅ Wishlist metafields update завершён");
+    res.status(200).send("\u2705 Wishlist metafields update \u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043d");
   } catch (err) {
-    console.error("❌ Ошибка обработки webhook:", err.response?.data || err.message);
+    console.error("\u274c \u041e\u0448\u0438\u0431\u043a\u0430 \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u043a\u0438 webhook:", err.response?.data || err.message);
     res.status(500).send("Webhook error");
   }
 });
