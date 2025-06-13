@@ -324,16 +324,27 @@ app.post("/webhooks/products/update", async (req, res) => {
   try {
     const rawBody = await getRawBody(req);
     const product = JSON.parse(rawBody.toString("utf8"));
-
     console.log("📦 Webhook: products/update", product?.id, product?.title);
 
     const tokenRow = db.prepare("SELECT token FROM shop_tokens WHERE shop = ?").get(SHOP);
     const token = tokenRow?.token;
     if (!token) return res.status(401).send("No access token");
 
-    const updatedVariants = product.variants || [];
+    // Дозапрашиваем полные данные продукта с вариантами
+    const { data: fullProductData } = await axios.get(
+      `https://${SHOP}/admin/api/2024-01/products/${product.id}.json`,
+      {
+        headers: { "X-Shopify-Access-Token": token }
+      }
+    );
+
+    const fullProduct = fullProductData.product;
+    const updatedVariants = fullProduct.variants || [];
+    const productTitle = fullProduct.title;
+
     console.log("🧩 Обновлённые варианты:", updatedVariants.map(v => v.id));
 
+    // Получаем всех кастомеров с wishlist
     const { data: customersData } = await axios.get(`https://${SHOP}/admin/api/2024-01/customers.json`, {
       headers: { "X-Shopify-Access-Token": token }
     });
@@ -342,6 +353,7 @@ app.post("/webhooks/products/update", async (req, res) => {
       const customerId = customer.id;
       console.log("👤 Чекаем кастомера:", customerId);
 
+      // Получаем wishlist метаполе
       const { data: metafieldsData } = await axios.get(`https://${SHOP}/admin/api/2024-01/customers/${customerId}/metafields.json`, {
         headers: { "X-Shopify-Access-Token": token }
       });
@@ -359,8 +371,8 @@ app.post("/webhooks/products/update", async (req, res) => {
       for (const variant of updatedVariants) {
         const imageSrc =
           variant.featured_image?.src ||
-          product.image?.src ||
-          product.images?.[0]?.src ||
+          fullProduct.image?.src ||
+          fullProduct.images?.[0]?.src ||
           "";
 
         console.log("🖼 imageSrc для", variant.id, "=>", imageSrc);
@@ -368,8 +380,8 @@ app.post("/webhooks/products/update", async (req, res) => {
         wishlist = wishlist.map(entry => {
           const entryId = typeof entry === "object" ? entry.id : entry;
           if (entryId === variant.id) {
-            const newName = `${product.title} - ${variant.title}`;
-            const newPrice = Number(variant.price) / 100;
+            const newName = `${productTitle} - ${variant.name || "?"}`;
+            const newPrice = Number(variant.price);
             const newSrc = imageSrc;
 
             const oldName = typeof entry === "object" ? entry.name : undefined;
@@ -381,21 +393,13 @@ app.post("/webhooks/products/update", async (req, res) => {
               oldPrice !== newPrice ||
               oldSrc !== newSrc;
 
-            console.log("🔎 Проверка варианта:", {
-              id: entryId,
-              oldName,
-              newName,
-              nameChanged: oldName !== newName,
-              oldPrice,
-              newPrice,
-              priceChanged: oldPrice !== newPrice,
-              oldSrc,
-              newSrc,
-              srcChanged: oldSrc !== newSrc
-            });
-
             if (hasChanged) {
-              console.log("💡 Обновление варианта:", { id: entryId });
+              console.log("💡 Обновление варианта:", {
+                id: entryId,
+                oldName, newName,
+                oldPrice, newPrice,
+                oldSrc, newSrc
+              });
               changed = true;
               return {
                 ...entry,
@@ -411,6 +415,7 @@ app.post("/webhooks/products/update", async (req, res) => {
 
       if (changed) {
         console.log("📤 Wishlist после:", JSON.stringify(wishlist));
+
         try {
           await axios.put(`https://${SHOP}/admin/api/2024-01/metafields/${metafield.id}.json`, {
             metafield: {
