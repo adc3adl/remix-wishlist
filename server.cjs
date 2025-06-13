@@ -350,16 +350,44 @@ app.post("/webhooks/products/update", async (req, res) => {
 
       for (const metafield of metafields) {
         try {
-          await axios.post(
-            `https://${SHOP}/admin/api/2024-01/variants/${variant.id}/metafields.json`,
-            { metafield },
-            {
-              headers: {
-                "X-Shopify-Access-Token": token,
-                "Content-Type": "application/json"
-              }
-            }
-          );
+// Сначала получить текущие метаполя варианта
+const existingRes = await axios.get(`https://${SHOP}/admin/api/2024-01/variants/${variant.id}/metafields.json`, {
+  headers: { "X-Shopify-Access-Token": token }
+});
+
+const existingFields = existingRes.data.metafields;
+
+for (const metafield of metafields) {
+  const existing = existingFields.find(f => f.namespace === metafield.namespace && f.key === metafield.key);
+
+  if (existing) {
+    // Обновление через PUT
+    await axios.put(
+      `https://${SHOP}/admin/api/2024-01/metafields/${existing.id}.json`,
+      { metafield: { id: existing.id, value: metafield.value, type: metafield.type } },
+      {
+        headers: {
+          "X-Shopify-Access-Token": token,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+    console.log(`✅ Метаполе '${metafield.key}' обновлено (PUT) для варианта ${variant.id}`);
+  } else {
+    // Создание через POST
+    await axios.post(
+      `https://${SHOP}/admin/api/2024-01/variants/${variant.id}/metafields.json`,
+      { metafield },
+      {
+        headers: {
+          "X-Shopify-Access-Token": token,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+    console.log(`✅ Метаполе '${metafield.key}' создано (POST) для варианта ${variant.id}`);
+  }
+}
           console.log(`✅ Метаполе '${metafield.key}' обновлено для варианта ${variant.id}`);
         } catch (err) {
           console.error(`❌ Ошибка обновления метаполя ${metafield.key} для варианта ${variant.id}:`, err.response?.data || err.message);
