@@ -322,9 +322,7 @@ app.post("/webhooks/products/update", async (req, res) => {
 
     const { data: fullProductData } = await axios.get(
       `https://${SHOP}/admin/api/2024-01/products/${product.id}.json`,
-      {
-        headers: { "X-Shopify-Access-Token": token }
-      }
+      { headers: { "X-Shopify-Access-Token": token } }
     );
 
     const fullProduct = fullProductData.product;
@@ -347,7 +345,7 @@ app.post("/webhooks/products/update", async (req, res) => {
 
       const metafield = metafieldsData.metafields.find(f => f.namespace === "custom_data" && f.key === "wishlist");
       if (!metafield?.value) {
-        console.log("📭 У кастомера нет wishlist");
+        console.log("📫 У кастомера нет wishlist");
         continue;
       }
 
@@ -356,18 +354,18 @@ app.post("/webhooks/products/update", async (req, res) => {
       let changed = false;
 
       for (const variant of updatedVariants) {
+        const variantId = variant.id;
+        const variantTitle = variant.title || "";
+        const variantName = variant.name || `${productTitle} - ${variantTitle}`;
+        const variantPrice = variant.price?.toString() || "0.00";
+
         const imageSrc =
           variant.featured_image?.src ||
           fullProduct.image?.src ||
           fullProduct.images?.[0]?.src || "";
 
-        const variantId = variant.id;
-        const newName = variant.name || `${productTitle} - ${variant.title}`;
-        const newPrice = parseFloat(variant.price).toFixed(2); // string for consistency
-        const newSrc = imageSrc;
-
         console.log(`🧩 Проверка варианта ${variantId}`);
-        console.log(`➡️ Новые данные: name="${newName}", price="${newPrice}", src="${newSrc}"`);
+        console.log(`➡️ Новые данные: name="${variantName}", price="${variantPrice}", src="${imageSrc}"`);
 
         wishlist = wishlist.map(entry => {
           const entryId = typeof entry === "object" ? entry.id : entry;
@@ -377,23 +375,26 @@ app.post("/webhooks/products/update", async (req, res) => {
           const oldPrice = typeof entry === "object" ? entry.price?.toString() || "" : "";
           const oldSrc = typeof entry === "object" ? entry.src || "" : "";
 
-          const nameChanged = oldName !== newName;
-          const priceChanged = oldPrice !== newPrice;
-          const srcChanged = oldSrc !== newSrc;
+          const nameChanged = oldName !== variantName;
+          const priceChanged = oldPrice !== variantPrice;
+          const srcChanged = oldSrc !== imageSrc;
+
+          const hasChanged = nameChanged || priceChanged || srcChanged;
 
           console.log(`🔍 Сравнение для variantId=${entryId}`);
-          console.log(`   name:  "${oldName}" -> "${newName}"  | changed: ${nameChanged}`);
-          console.log(`   price: "${oldPrice}" -> "${newPrice}" | changed: ${priceChanged}`);
-          console.log(`   src:   "${oldSrc}" -> "${newSrc}"     | changed: ${srcChanged}`);
+          console.log(`   name:  "${oldName}" => "${variantName}"  | changed: ${nameChanged}`);
+          console.log(`   price: "${oldPrice}" => "${variantPrice}" | changed: ${priceChanged}`);
+          console.log(`   src:   "${oldSrc}" => "${imageSrc}"     | changed: ${srcChanged}`);
+          console.log(`   ✅ hasChanged: ${hasChanged}`);
 
-          if (nameChanged || priceChanged || srcChanged) {
+          if (hasChanged) {
             changed = true;
             return {
               id: entryId,
-              quantity: typeof entry === "object" ? entry.quantity || 1 : 1,
-              name: newName,
-              price: newPrice,
-              src: newSrc
+              name: variantName,
+              price: variantPrice,
+              src: imageSrc,
+              quantity: typeof entry === "object" ? entry.quantity || 1 : 1
             };
           }
 
