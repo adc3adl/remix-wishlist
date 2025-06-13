@@ -338,9 +338,7 @@ app.post("/webhooks/products/update", async (req, res) => {
 
     const { data: fullProductData } = await axios.get(
       `https://${SHOP}/admin/api/2024-01/products/${product.id}.json`,
-      {
-        headers: { "X-Shopify-Access-Token": token }
-      }
+      { headers: { "X-Shopify-Access-Token": token } }
     );
 
     const fullProduct = fullProductData.product;
@@ -380,7 +378,7 @@ app.post("/webhooks/products/update", async (req, res) => {
           fullProduct.images?.[0]?.src || "";
 
         const newName = cleanVariant.name || `${productTitle} - ${cleanVariant.title || ""}`;
-        const newPrice = cleanVariant.price;
+        const newPrice = parseFloat(cleanVariant.price) || 0;
         const newSrc = imageSrc;
 
         console.log(`🧩 Проверка варианта ${cleanVariant.id}`);
@@ -388,16 +386,38 @@ app.post("/webhooks/products/update", async (req, res) => {
 
         wishlist = wishlist.map(entry => {
           const entryId = typeof entry === "object" ? entry.id : entry;
-          if (entryId === cleanVariant.id) {
-            changed = true;
-            return {
+
+          if (String(entryId) === String(cleanVariant.id)) {
+            const oldName = typeof entry === "object" ? entry.name || "" : "";
+            const oldPrice = typeof entry === "object" ? parseFloat(entry.price) || 0 : 0;
+            const oldSrc = typeof entry === "object" ? entry.src || "" : "";
+
+            const nameChanged = oldName !== newName;
+            const priceChanged = oldPrice !== newPrice;
+            const srcChanged = oldSrc !== newSrc;
+
+            const hasChanged = nameChanged || priceChanged || srcChanged;
+
+            console.log("🧪 Сравнение варианта:", {
               id: entryId,
-              name: newName,
-              price: newPrice,
-              src: newSrc,
-              quantity: typeof entry === "object" ? entry.quantity || 1 : 1
-            };
+              oldName, newName, nameChanged,
+              oldPrice, newPrice, priceChanged,
+              oldSrc, newSrc, srcChanged,
+              hasChanged
+            });
+
+            if (hasChanged) {
+              changed = true;
+              return {
+                id: entryId,
+                name: newName,
+                price: newPrice,
+                src: newSrc,
+                quantity: typeof entry === "object" ? entry.quantity || 1 : 1
+              };
+            }
           }
+
           return entry;
         });
       }
