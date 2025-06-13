@@ -334,7 +334,6 @@ app.post("/webhooks/products/update", async (req, res) => {
     const updatedVariants = product.variants || [];
     console.log("🧩 Обновлённые варианты:", updatedVariants.map(v => v.id));
 
-    // Получаем всех кастомеров с metafield wishlist
     const { data: customersData } = await axios.get(`https://${SHOP}/admin/api/2024-01/customers.json`, {
       headers: { "X-Shopify-Access-Token": token }
     });
@@ -343,7 +342,6 @@ app.post("/webhooks/products/update", async (req, res) => {
       const customerId = customer.id;
       console.log("👤 Чекаем кастомера:", customerId);
 
-      // Получаем wishlist метаполе для кастомера
       const { data: metafieldsData } = await axios.get(`https://${SHOP}/admin/api/2024-01/customers/${customerId}/metafields.json`, {
         headers: { "X-Shopify-Access-Token": token }
       });
@@ -370,14 +368,37 @@ app.post("/webhooks/products/update", async (req, res) => {
         wishlist = wishlist.map(entry => {
           const entryId = typeof entry === "object" ? entry.id : entry;
           if (entryId === variant.id) {
-            console.log("💡 Найден вариант в wishlist:", entryId);
-            changed = true;
-            return {
-              ...entry,
-              name: `${product.title} - ${variant.title}`,
-              price: Number(variant.price) || 0,
-              src: imageSrc
-            };
+            const newName = `${product.title} - ${variant.title}`;
+            const newPrice = Number(variant.price) || 0;
+            const newSrc = imageSrc;
+
+            const oldName = typeof entry === "object" ? entry.name : undefined;
+            const oldPrice = typeof entry === "object" ? Number(entry.price) : undefined;
+            const oldSrc = typeof entry === "object" ? entry.src : undefined;
+
+            const hasChanged =
+              oldName !== newName ||
+              oldPrice !== newPrice ||
+              oldSrc !== newSrc;
+
+            if (hasChanged) {
+              console.log("💡 Обновление варианта:", {
+                id: entryId,
+                oldName,
+                newName,
+                oldPrice,
+                newPrice,
+                oldSrc,
+                newSrc
+              });
+              changed = true;
+              return {
+                ...entry,
+                name: newName,
+                price: newPrice,
+                src: newSrc
+              };
+            }
           }
           return entry;
         });
@@ -385,7 +406,6 @@ app.post("/webhooks/products/update", async (req, res) => {
 
       if (changed) {
         console.log("📤 Wishlist после:", JSON.stringify(wishlist));
-
         try {
           await axios.put(`https://${SHOP}/admin/api/2024-01/metafields/${metafield.id}.json`, {
             metafield: {
