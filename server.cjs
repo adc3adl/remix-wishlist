@@ -380,7 +380,7 @@ app.post("/webhooks/products/update", async (req, res) => {
           fullProduct.images?.[0]?.src || "";
 
         const newName = cleanVariant.name || `${productTitle} - ${cleanVariant.title || ""}`;
-        const newPrice = parseFloat(cleanVariant.price) || 0;
+        const newPrice = cleanVariant.price;
         const newSrc = imageSrc;
 
         console.log(`🧩 Проверка варианта ${cleanVariant.id}`);
@@ -389,34 +389,14 @@ app.post("/webhooks/products/update", async (req, res) => {
         wishlist = wishlist.map(entry => {
           const entryId = typeof entry === "object" ? entry.id : entry;
           if (entryId === cleanVariant.id) {
-            const oldName = typeof entry === "object" ? entry.name || "" : "";
-            const oldPrice = typeof entry === "object" ? parseFloat(entry.price) || 0 : 0;
-            const oldSrc = typeof entry === "object" ? entry.src || "" : "";
-
-            const nameChanged = oldName !== newName;
-            const priceChanged = oldPrice !== newPrice;
-            const srcChanged = oldSrc !== newSrc;
-
-            const hasChanged = nameChanged || priceChanged || srcChanged;
-
-            console.log("🧪 Сравнение варианта:", {
+            changed = true;
+            return {
               id: entryId,
-              oldName, newName, nameChanged,
-              oldPrice, newPrice, priceChanged,
-              oldSrc, newSrc, srcChanged,
-              hasChanged
-            });
-
-            if (hasChanged) {
-              changed = true;
-              return {
-                id: entryId,
-                name: newName,
-                price: newPrice,
-                src: newSrc,
-                quantity: typeof entry === "object" ? entry.quantity || 1 : 1
-              };
-            }
+              name: newName,
+              price: newPrice,
+              src: newSrc,
+              quantity: typeof entry === "object" ? entry.quantity || 1 : 1
+            };
           }
           return entry;
         });
@@ -444,7 +424,7 @@ app.post("/webhooks/products/update", async (req, res) => {
           console.error(`❌ PUT wishlist error для customer ${customerId}:`, putErr.response?.data || putErr.message);
         }
       } else {
-        console.log("⛔️ Изменений нет — пропускаем обновление metafield");
+        console.log("⛔️ Нет совпадений — не обновляем wishlist");
       }
     }
 
