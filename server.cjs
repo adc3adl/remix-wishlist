@@ -319,7 +319,7 @@ app.get("/debug/all-events", (req, res) => {
     res.status(500).json({ error: "Failed to fetch events" });
   }
 });
-//update metafields
+// update metafields
 app.post("/webhooks/products/update", async (req, res) => {
   try {
     const rawBody = await getRawBody(req);
@@ -369,11 +369,11 @@ app.post("/webhooks/products/update", async (req, res) => {
           const entryId = typeof entry === "object" ? entry.id : entry;
           if (entryId === variant.id) {
             const newName = `${product.title} - ${variant.title}`;
-            const newPrice = Number(variant.price) || 0;
+            const newPrice = (Number(variant.price) / 100).toFixed(2);
             const newSrc = imageSrc;
 
             const oldName = typeof entry === "object" ? entry.name : undefined;
-            const oldPrice = typeof entry === "object" ? Number(entry.price) : undefined;
+            const oldPrice = typeof entry === "object" ? entry.price : undefined;
             const oldSrc = typeof entry === "object" ? entry.src : undefined;
 
             const hasChanged =
