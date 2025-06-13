@@ -180,40 +180,47 @@ app.post("/api/wishlist", async (req, res) => {
     if (action === "update") {
       if (!Number.isInteger(quantity) || quantity < 1) return res.status(400).json({ error: "Invalid quantity" });
       wishlist = wishlist.map(p => (typeof p === "object" && p.id === variantId ? { ...p, quantity } : (p === variantId ? { id: variantId, quantity } : p)));
-}     else if (action === "add") {
+    } else if (action === "add") {
       if (!wishlist.some(p => (typeof p === "object" ? p.id : p) === variantId)) {
-      // Получаем данные варианта
-      const { data: variantData } = await axios.get(`https://${SHOP}/admin/api/2024-01/variants/${variantId}.json`, {
-      headers: { "X-Shopify-Access-Token": token }
-      });
+        // Получаем данные варианта
+        const { data: variantData } = await axios.get(`https://${SHOP}/admin/api/2024-01/variants/${variantId}.json`, {
+          headers: { "X-Shopify-Access-Token": token }
+        });
 
-  const variant = variantData?.variant;
+        const variant = variantData?.variant;
 
-let imageSrc = "";
-try {
-  const { data: productData } = await axios.get(`https://${SHOP}/admin/api/2024-01/products/${variant.product_id}.json`, {
-    headers: { "X-Shopify-Access-Token": token }
-  });
+        let imageSrc = "";
+        let productTitle = "";
+        let wishlistName = "";
 
-  const product = productData?.product;
-  const imageObj =
-    product?.images?.find(img => img.id === variant.image_id) ||
-    product?.image ||
-    product?.images?.[0];
+        try {
+          const { data: productData } = await axios.get(`https://${SHOP}/admin/api/2024-01/products/${variant.product_id}.json`, {
+            headers: { "X-Shopify-Access-Token": token }
+          });
 
-  imageSrc = imageObj?.src || "";
-} catch (e) {
-  console.warn("⚠️ Ошибка получения product images:", e.message);
-}
+          const product = productData?.product;
+          productTitle = product?.title || "Untitled Product";
 
-wishlist.push({
-  id: variantId,
-  quantity: 1,
-  name: variant?.name || `${variant?.product_title} - ${variant?.title}`,
-  src: imageSrc,
-  price: variant?.price || 0
-});
-  }
+          const imageObj =
+            product?.images?.find(img => img.id === variant.image_id) ||
+            product?.image ||
+            product?.images?.[0];
+
+          imageSrc = imageObj?.src || "";
+          wishlistName = variant?.name || `${productTitle} - ${variant?.title || "Default Title"}`;
+        } catch (e) {
+          console.warn("⚠️ Ошибка получения product data:", e.message);
+          wishlistName = variant?.name || `Variant ${variantId}`;
+        }
+
+        wishlist.push({
+          id: variantId,
+          quantity: 1,
+          name: wishlistName,
+          src: imageSrc,
+          price: variant?.price || 0
+        });
+      }
     } else if (action === "remove") {
       wishlist = wishlist.filter(p => (typeof p === "object" ? p.id : p) !== variantId);
     }
@@ -250,7 +257,6 @@ wishlist.push({
     res.status(500).json({ error: "Failed to update metafield" });
   }
 });
-
 // === Wishlist get
 app.get("/api/wishlist-get", async (req, res) => {
   const { customerId } = req.query;
