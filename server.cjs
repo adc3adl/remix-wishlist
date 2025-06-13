@@ -209,7 +209,7 @@ try {
 wishlist.push({
   id: variantId,
   quantity: 1,
-  name: `${variant?.product_title || "Untitled Product"} - ${variant?.title || "Untitled Variant"}`,
+  name: `${product?.title || "Untitled Product"} - ${variant?.title || "Untitled Variant"}`,
   src: imageSrc,
   price: variant?.price || 0
 });
@@ -457,7 +457,7 @@ app.post("/webhooks/products/update", async (req, res) => {
 // === Debug route: просмотр событий "add-to-cart"
 app.get("/debug/shop_tokens", (req, res) => {
   try {
-    const rows = db.prepare("SELECT * FROM add_to_cart_events ORDER BY created_at DESC").all();
+    const rows = db.prepare("SELECT * FROM shop_tokens ORDER BY created_at DESC").all();
     res.json(rows);
   } catch (err) {
     console.error("❌ Ошибка при чтении из БД:", err.message);
