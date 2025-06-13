@@ -1,7 +1,6 @@
 /// server.cjs
 
 require("dotenv").config();
-const getRawBody = require("raw-body");
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
@@ -20,50 +19,6 @@ const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET;
 const APP_URL = process.env.APP_URL;
 const SCOPES = process.env.SCOPES || "write_script_tags,read_customers,write_customers";
 const SHOP = process.env.SHOPIFY_SHOP;
-const SHOPIFY_API_VERSION = "2024-01"; 
-
-
-async function registerWebhooks() {
-  const tokenRow = db.prepare("SELECT token FROM shop_tokens WHERE shop = ?").get(SHOP);
-  if (!tokenRow?.token) {
-    console.warn("⚠️ Токен не найден для магазина, webhook не зарегистрирован");
-    return;
-  }
-  const token = tokenRow.token;
-
-  const webhookUrl = `${APP_URL}/webhooks/products/update`;
-
-  try {
-    await axios.post(
-      `https://${SHOP}/admin/api/${SHOPIFY_API_VERSION}/webhooks.json`,
-      {
-        webhook: {
-          topic: "products/update",
-          address: webhookUrl,
-          format: "json"
-        }
-      },
-      {
-        const tokenRow = db.prepare("SELECT token FROM shop_tokens WHERE shop = ?").get(SHOP);
-        if (!tokenRow?.token) {
-          console.warn("⚠️ Токен не найден — пропускаем обновление метаполей");
-          return res.status(200).send("No token");
-        }
-        const token = tokenRow.token;
-
-        headers: {
-  "X-Shopify-Access-Token": token,
-          "X-Shopify-Access-Token": token,
-          "Content-Type": "application/json"
-        }
-      }
-    );
-
-    console.log("✅ Webhook products/update зарегистрирован");
-  } catch (error) {
-    console.error("❌ Ошибка регистрации webhook:", error.response?.data || error.message);
-  }
-}
 
 // === Мидлвары
 app.use((req, res, next) => {
@@ -85,7 +40,7 @@ app.use((req, res, next) => {
 });
 
 app.use(cors({ origin: true, credentials: true }));
-
+app.use(bodyParser.json());
 
 // === База данных
 const db = new Database('./shopify.db');
@@ -167,7 +122,7 @@ app.get("/auth/callback", async (req, res) => {
 });
 
 // === Add to cart logging
-app.post("/api/add-to-cart", express.json(), (req, res) => {
+app.post("/api/add-to-cart", (req, res) => {
   const { productId, title, url, customerId } = req.body;
   if (!productId) return res.status(400).json({ error: "productId required" });
 
@@ -181,7 +136,7 @@ app.post("/api/add-to-cart", express.json(), (req, res) => {
 });
 
 // === Wishlist logic
-app.post("/api/wishlist", express.json(), async (req, res) => {
+app.post("/api/wishlist", async (req, res) => {
   const { customerId, productId: variantId, action, quantity } = req.body;
   if (!customerId || !variantId || !["add", "remove", "update"].includes(action)) {
     return res.status(400).json({ error: "Invalid input" });
@@ -359,65 +314,6 @@ app.get("/debug/all-events", (req, res) => {
   }
 });
 
-//webhook  update metafields
-app.post("/webhooks/products/update", async (req, res) => {
-  try {
-    const rawBody = await getRawBody(req);
-    const product = JSON.parse(rawBody.toString("utf8"));
-
-    for (const variant of product.variants || []) {
-      const variantName = variant.name || `${product.title} - ${variant.title}`;
-      const imageSrc =
-        variant.featured_image?.src ||
-        product.image?.src ||
-        product.images?.[0]?.src ||
-        "";
-
-      const metafields = [
-        {
-          namespace: "custom",
-          key: "name",
-          value: variantName,
-          type: "single_line_text_field"
-        },
-        {
-          namespace: "custom",
-          key: "price",
-          value: variant.price?.toString() || "0",
-          type: "number_decimal"
-        },
-        {
-          namespace: "custom",
-          key: "src",
-          value: imageSrc,
-          type: "url"
-        }
-      ];
-
-      for (const metafield of metafields) {
-        try {
-          await axios.post(
-            `https://${SHOP}/admin/api/${SHOPIFY_API_VERSION}/variants/${variant.id}/metafields.json`,
-            { metafield },
-            {
-              headers: {
-                "X-Shopify-Access-Token": TOKEN,
-                "Content-Type": "application/json"
-              }
-            }
-          );
-        } catch (err) {
-          console.error(`❌ Ошибка обновления метаполя ${metafield.key}:`, err?.response?.data || err.message);
-        }
-      }
-    }
-
-    res.status(200).send("Metafields updated");
-  } catch (err) {
-    console.error("❌ Ошибка обработки webhook:", err.message);
-    res.status(500).send("Ошибка сервера");
-  }
-});
 // === Remix fallback
 app.all(
   "*",
@@ -430,5 +326,4 @@ app.all(
 // === Запуск
 app.listen(PORT, () => {
   console.log(`✅ Remix + Express сервер запущен: http://localhost:${PORT}`);
-  registerWebhooks();
 });
