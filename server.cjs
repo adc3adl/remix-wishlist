@@ -332,6 +332,7 @@ app.post("/webhooks/products/update", async (req, res) => {
     if (!token) return res.status(401).send("No access token");
 
     const updatedVariants = product.variants || [];
+    console.log("🧩 Обновлённые варианты:", updatedVariants.map(v => v.id));
 
     // Получаем всех кастомеров с metafield wishlist
     const { data: customersData } = await axios.get(`https://${SHOP}/admin/api/2024-01/customers.json`, {
@@ -340,6 +341,7 @@ app.post("/webhooks/products/update", async (req, res) => {
 
     for (const customer of customersData.customers) {
       const customerId = customer.id;
+      console.log("👤 Чекаем кастомера:", customerId);
 
       // Получаем wishlist метаполе для кастомера
       const { data: metafieldsData } = await axios.get(`https://${SHOP}/admin/api/2024-01/customers/${customerId}/metafields.json`, {
@@ -347,9 +349,13 @@ app.post("/webhooks/products/update", async (req, res) => {
       });
 
       const metafield = metafieldsData.metafields.find(f => f.namespace === "custom_data" && f.key === "wishlist");
-      if (!metafield?.value) continue;
+      if (!metafield?.value) {
+        console.log("📭 У кастомера нет wishlist");
+        continue;
+      }
 
       let wishlist = JSON.parse(metafield.value);
+      console.log("📥 Wishlist до:", JSON.stringify(wishlist));
       let changed = false;
 
       for (const variant of updatedVariants) {
@@ -359,8 +365,12 @@ app.post("/webhooks/products/update", async (req, res) => {
           product.images?.[0]?.src ||
           "";
 
+        console.log("🖼 imageSrc для", variant.id, "=>", imageSrc);
+
         wishlist = wishlist.map(entry => {
-          if ((typeof entry === "object" ? entry.id : entry) === variant.id) {
+          const entryId = typeof entry === "object" ? entry.id : entry;
+          if (entryId === variant.id) {
+            console.log("💡 Найден вариант в wishlist:", entryId);
             changed = true;
             return {
               ...entry,
@@ -373,27 +383,35 @@ app.post("/webhooks/products/update", async (req, res) => {
         });
       }
 
-      // если были изменения — обновим customer metafield
       if (changed) {
-        await axios.put(`https://${SHOP}/admin/api/2024-01/metafields/${metafield.id}.json`, {
-          metafield: {
-            id: metafield.id,
-            value: JSON.stringify(wishlist),
-            type: "json"
-          }
-        }, {
-          headers: {
-            "X-Shopify-Access-Token": token,
-            "Content-Type": "application/json"
-          }
-        });
-        console.log(`✅ Обновлён wishlist для customer ${customerId}`);
+        console.log("📤 Wishlist после:", JSON.stringify(wishlist));
+
+        try {
+          await axios.put(`https://${SHOP}/admin/api/2024-01/metafields/${metafield.id}.json`, {
+            metafield: {
+              id: metafield.id,
+              value: JSON.stringify(wishlist),
+              type: "json"
+            }
+          }, {
+            headers: {
+              "X-Shopify-Access-Token": token,
+              "Content-Type": "application/json"
+            }
+          });
+
+          console.log(`✅ Обновлён wishlist для customer ${customerId}`);
+        } catch (putErr) {
+          console.error(`❌ PUT wishlist error для customer ${customerId}:`, putErr.response?.data || putErr.message);
+        }
+      } else {
+        console.log("⛔️ Изменений нет — пропускаем обновление metafield");
       }
     }
 
-    res.status(200).send("✅ Wishlist metafields updated");
+    res.status(200).send("✅ Wishlist metafields update завершён");
   } catch (err) {
-    console.error("❌ Ошибка обработки webhook:", err.message);
+    console.error("❌ Ошибка обработки webhook:", err.response?.data || err.message);
     res.status(500).send("Webhook error");
   }
 });
