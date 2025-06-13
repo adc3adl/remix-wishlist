@@ -44,7 +44,15 @@ async function registerWebhooks() {
         }
       },
       {
+        const tokenRow = db.prepare("SELECT token FROM shop_tokens WHERE shop = ?").get(SHOP);
+        if (!tokenRow?.token) {
+          console.warn("⚠️ Токен не найден — пропускаем обновление метаполей");
+          return res.status(200).send("No token");
+        }
+        const token = tokenRow.token;
+
         headers: {
+  "X-Shopify-Access-Token": token,
           "X-Shopify-Access-Token": token,
           "Content-Type": "application/json"
         }
@@ -77,7 +85,7 @@ app.use((req, res, next) => {
 });
 
 app.use(cors({ origin: true, credentials: true }));
-app.use(bodyParser.json());
+
 
 // === База данных
 const db = new Database('./shopify.db');
@@ -159,7 +167,7 @@ app.get("/auth/callback", async (req, res) => {
 });
 
 // === Add to cart logging
-app.post("/api/add-to-cart", (req, res) => {
+app.post("/api/add-to-cart", express.json(), (req, res) => {
   const { productId, title, url, customerId } = req.body;
   if (!productId) return res.status(400).json({ error: "productId required" });
 
@@ -173,7 +181,7 @@ app.post("/api/add-to-cart", (req, res) => {
 });
 
 // === Wishlist logic
-app.post("/api/wishlist", async (req, res) => {
+app.post("/api/wishlist", express.json(), async (req, res) => {
   const { customerId, productId: variantId, action, quantity } = req.body;
   if (!customerId || !variantId || !["add", "remove", "update"].includes(action)) {
     return res.status(400).json({ error: "Invalid input" });
