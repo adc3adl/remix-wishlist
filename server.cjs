@@ -209,7 +209,7 @@ try {
 wishlist.push({
   id: variantId,
   quantity: 1,
-  name: variant?.name || `${variant?.product_title} - ${variant?.title}`,
+  name: `${variant?.product_title || "Untitled Product"} - ${variant?.title || "Untitled Variant"}`,
   src: imageSrc,
   price: variant?.price || 0
 });
