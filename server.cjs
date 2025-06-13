@@ -23,6 +23,13 @@ const SHOPIFY_API_VERSION = "2024-01";
 
 
 async function registerWebhooks() {
+  const tokenRow = db.prepare("SELECT token FROM shop_tokens WHERE shop = ?").get(SHOP);
+  if (!tokenRow?.token) {
+    console.warn("⚠️ Токен не найден для магазина, webhook не зарегистрирован");
+    return;
+  }
+  const token = tokenRow.token;
+
   const webhookUrl = `${APP_URL}/webhooks/products/update`;
 
   try {
@@ -37,17 +44,17 @@ async function registerWebhooks() {
       },
       {
         headers: {
-          "X-Shopify-Access-Token": TOKEN,
+          "X-Shopify-Access-Token": token,
           "Content-Type": "application/json"
         }
       }
     );
+
     console.log("✅ Webhook products/update зарегистрирован");
   } catch (error) {
     console.error("❌ Ошибка регистрации webhook:", error.response?.data || error.message);
   }
 }
-
 
 // === Мидлвары
 app.use((req, res, next) => {
