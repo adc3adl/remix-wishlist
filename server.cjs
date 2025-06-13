@@ -369,11 +369,11 @@ app.post("/webhooks/products/update", async (req, res) => {
           const entryId = typeof entry === "object" ? entry.id : entry;
           if (entryId === variant.id) {
             const newName = `${product.title} - ${variant.title}`;
-            const newPrice = (Number(variant.price) / 100).toFixed(2);
+            const newPrice = Number(variant.price) / 100;
             const newSrc = imageSrc;
 
             const oldName = typeof entry === "object" ? entry.name : undefined;
-            const oldPrice = typeof entry === "object" ? entry.price : undefined;
+            const oldPrice = typeof entry === "object" ? Number(entry.price) : undefined;
             const oldSrc = typeof entry === "object" ? entry.src : undefined;
 
             const hasChanged =
@@ -381,16 +381,21 @@ app.post("/webhooks/products/update", async (req, res) => {
               oldPrice !== newPrice ||
               oldSrc !== newSrc;
 
+            console.log("🔎 Проверка варианта:", {
+              id: entryId,
+              oldName,
+              newName,
+              nameChanged: oldName !== newName,
+              oldPrice,
+              newPrice,
+              priceChanged: oldPrice !== newPrice,
+              oldSrc,
+              newSrc,
+              srcChanged: oldSrc !== newSrc
+            });
+
             if (hasChanged) {
-              console.log("💡 Обновление варианта:", {
-                id: entryId,
-                oldName,
-                newName,
-                oldPrice,
-                newPrice,
-                oldSrc,
-                newSrc
-              });
+              console.log("💡 Обновление варианта:", { id: entryId });
               changed = true;
               return {
                 ...entry,
