@@ -325,49 +325,73 @@ app.post("/webhooks/products/update", async (req, res) => {
     const rawBody = await getRawBody(req);
     const product = JSON.parse(rawBody.toString("utf8"));
 
-    console.log("📦 Webhook вызван: products/update");
-    console.log("➡️ Получен product:", product?.id, product?.title);
+    console.log("📦 Webhook: products/update", product?.id, product?.title);
 
     const tokenRow = db.prepare("SELECT token FROM shop_tokens WHERE shop = ?").get(SHOP);
     const token = tokenRow?.token;
     if (!token) return res.status(401).send("No access token");
 
-    for (const variant of product.variants || []) {
-      console.log(`🔄 Обработка варианта ${variant.id}: ${variant.title}`);
+    const updatedVariants = product.variants || [];
 
-      const variantName = `${product.title} - ${variant.title}`;
-      const imageSrc =
-        variant.featured_image?.src ||
-        product.image?.src ||
-        product.images?.[0]?.src ||
-        "";
+    // Получаем всех кастомеров с metafield wishlist
+    const { data: customersData } = await axios.get(`https://${SHOP}/admin/api/2024-01/customers.json`, {
+      headers: { "X-Shopify-Access-Token": token }
+    });
 
-      const metafields = [
-        { namespace: "custom", key: "name", value: variantName, type: "single_line_text_field" },
-        { namespace: "custom", key: "price", value: variant.price?.toString() || "0", type: "number_decimal" },
-        { namespace: "custom", key: "src", value: imageSrc, type: "url" }
-      ];
+    for (const customer of customersData.customers) {
+      const customerId = customer.id;
 
-      for (const metafield of metafields) {
-        try {
-          await axios.post(
-            `https://${SHOP}/admin/api/2024-01/variants/${variant.id}/metafields.json`,
-            { metafield },
-            {
-              headers: {
-                "X-Shopify-Access-Token": token,
-                "Content-Type": "application/json"
-              }
-            }
-          );
-          console.log(`✅ Метаполе '${metafield.key}' обновлено для варианта ${variant.id}`);
-        } catch (err) {
-          console.error(`❌ Ошибка обновления метаполя ${metafield.key} для варианта ${variant.id}:`, err.response?.data || err.message);
-        }
+      // Получаем wishlist метаполе для кастомера
+      const { data: metafieldsData } = await axios.get(`https://${SHOP}/admin/api/2024-01/customers/${customerId}/metafields.json`, {
+        headers: { "X-Shopify-Access-Token": token }
+      });
+
+      const metafield = metafieldsData.metafields.find(f => f.namespace === "custom_data" && f.key === "wishlist");
+      if (!metafield?.value) continue;
+
+      let wishlist = JSON.parse(metafield.value);
+      let changed = false;
+
+      for (const variant of updatedVariants) {
+        const imageSrc =
+          variant.featured_image?.src ||
+          product.image?.src ||
+          product.images?.[0]?.src ||
+          "";
+
+        wishlist = wishlist.map(entry => {
+          if ((typeof entry === "object" ? entry.id : entry) === variant.id) {
+            changed = true;
+            return {
+              ...entry,
+              name: `${product.title} - ${variant.title}`,
+              price: Number(variant.price) || 0,
+              src: imageSrc
+            };
+          }
+          return entry;
+        });
+      }
+
+      // если были изменения — обновим customer metafield
+      if (changed) {
+        await axios.put(`https://${SHOP}/admin/api/2024-01/metafields/${metafield.id}.json`, {
+          metafield: {
+            id: metafield.id,
+            value: JSON.stringify(wishlist),
+            type: "json"
+          }
+        }, {
+          headers: {
+            "X-Shopify-Access-Token": token,
+            "Content-Type": "application/json"
+          }
+        });
+        console.log(`✅ Обновлён wishlist для customer ${customerId}`);
       }
     }
 
-    res.status(200).send("✅ Metafields updated");
+    res.status(200).send("✅ Wishlist metafields updated");
   } catch (err) {
     console.error("❌ Ошибка обработки webhook:", err.message);
     res.status(500).send("Webhook error");
