@@ -460,7 +460,7 @@ app.post("/webhooks/products/update", async (req, res) => {
     res.status(500).send("Webhook error");
   }
 });
-// === Debug route: просмотр событий "add-to-cart"
+/// === Debug route: просмотр событий "add-to-cart"
 app.get("/debug/shop_tokens", (req, res) => {
   try {
     const rows = db.prepare("SELECT * FROM shop_tokens ORDER BY created_at DESC").all();
