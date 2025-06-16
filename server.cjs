@@ -183,44 +183,51 @@ app.post("/api/wishlist", async (req, res) => {
     } else if (action === "add") {
       if (!wishlist.some(p => (typeof p === "object" ? p.id : p) === variantId)) {
         // Получаем данные варианта
-        const { data: variantData } = await axios.get(`https://${SHOP}/admin/api/2024-01/variants/${variantId}.json`, {
-          headers: { "X-Shopify-Access-Token": token }
-        });
+const { data: variantData } = await axios.get(`https://${SHOP}/admin/api/2024-01/variants/${variantId}.json`, {
+  headers: { "X-Shopify-Access-Token": token }
+});
 
-        const variant = variantData?.variant;
+const variant = variantData?.variant;
 
-        let imageSrc = "";
-        let productTitle = "";
-        let wishlistName = "";
+let imageSrc = "";
+let productTitle = "";
+let wishlistName = "";
+let productHandle = "";
 
-        try {
-          const { data: productData } = await axios.get(`https://${SHOP}/admin/api/2024-01/products/${variant.product_id}.json`, {
-            headers: { "X-Shopify-Access-Token": token }
-          });
+try {
+  const { data: productData } = await axios.get(`https://${SHOP}/admin/api/2024-01/products/${variant.product_id}.json`, {
+    headers: { "X-Shopify-Access-Token": token }
+  });
 
-          const product = productData?.product;
-          productTitle = product?.title || "Untitled Product";
+  const product = productData?.product;
+  productTitle = product?.title || "Untitled Product";
+  productHandle = product?.handle || "";
 
-          const imageObj =
-            product?.images?.find(img => img.id === variant.image_id) ||
-            product?.image ||
-            product?.images?.[0];
+  const imageObj =
+    product?.images?.find(img => img.id === variant.image_id) ||
+    product?.image ||
+    product?.images?.[0];
 
-          imageSrc = imageObj?.src || "";
-          wishlistName = variant?.name || `${productTitle} - ${variant?.title || "Default Title"}`;
-        } catch (e) {
-          console.warn("⚠️ Ошибка получения product data:", e.message);
-          wishlistName = variant?.name || `Variant ${variantId}`;
-        }
+  imageSrc = imageObj?.src || "";
+  wishlistName = variant?.name || `${productTitle} - ${variant?.title || "Default Title"}`;
+} catch (e) {
+  console.warn("⚠️ Ошибка получения product data:", e.message);
+  wishlistName = variant?.name || `Variant ${variantId}`;
+  productHandle = ""; // fallback, чтобы не было ReferenceError
+}
 
-        wishlist.push({
-          id: variantId,
-          quantity: 1,
-          name: wishlistName,
-          src: imageSrc,
-          price: variant?.price || 0,
-          url: `https://${SHOP}/products/${product.handle}?variant=${variantId}`
-        });
+const productUrl = productHandle
+  ? `https://${SHOP}/products/${productHandle}?variant=${variantId}`
+  : "";
+
+wishlist.push({
+  id: variantId,
+  quantity: 1,
+  name: wishlistName,
+  src: imageSrc,
+  price: variant?.price || 0,
+  url: productUrl
+});
       }
     } else if (action === "remove") {
       wishlist = wishlist.filter(p => (typeof p === "object" ? p.id : p) !== variantId);
