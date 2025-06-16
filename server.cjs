@@ -218,7 +218,8 @@ app.post("/api/wishlist", async (req, res) => {
           quantity: 1,
           name: wishlistName,
           src: imageSrc,
-          price: variant?.price || 0
+          price: variant?.price || 0,
+          url: `https://${SHOP}/products/${product.handle}?variant=${variantId}`
         });
       }
     } else if (action === "remove") {
