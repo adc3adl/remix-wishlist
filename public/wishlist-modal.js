@@ -322,14 +322,18 @@ if (e.target.classList.contains("wishlist-add-to-cart")) {
   e.stopPropagation();
 
   const item = e.target.closest(".wishlist-item");
-  const variantId = item?.getAttribute("data-variant-id");
+
+  const form = document.querySelector('form[action^="/cart/add"]');
+  const variantInput = form?.querySelector('input[name="id"]');
+  const variantId = variantInput?.value;
+
   const qtyInput = item.querySelector(".wishlist-qty");
   const quantity = Number(qtyInput.value) || 1;
 
   if (!variantId || !quantity) return;
 
   const title = decodeURIComponent(item.getAttribute("data-title") || "");
-  const url = decodeURIComponent(item.getAttribute("data-url") || "");
+  const url = window.location.pathname + "?variant=" + variantId;
 
   try {
     e.target.disabled = true;
