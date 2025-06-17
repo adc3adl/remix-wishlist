@@ -184,7 +184,7 @@ if (prehideStyle) prehideStyle.remove();
 
   <div style="flex: 1;">
    <div class="wishlist-title">
-  <a href="${p.url || `/products/${p.handle || ''}`}" target="_blank" rel="noopener noreferrer">
+  <a href="${p.url || (`/products/${p.handle}?variant=${p.id}`)}" target="_blank" rel="noopener noreferrer">
     ${p.title}
   </a>
 </div>
