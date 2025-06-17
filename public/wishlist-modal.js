@@ -322,18 +322,14 @@ if (e.target.classList.contains("wishlist-add-to-cart")) {
   e.stopPropagation();
 
   const item = e.target.closest(".wishlist-item");
-
-  const form = document.querySelector('form[action^="/cart/add"]');
-  const variantInput = form?.querySelector('input[name="id"]');
-  const variantId = variantInput?.value;
-
+  const variantId = item?.getAttribute("data-variant-id");
   const qtyInput = item.querySelector(".wishlist-qty");
   const quantity = Number(qtyInput.value) || 1;
 
   if (!variantId || !quantity) return;
 
   const title = decodeURIComponent(item.getAttribute("data-title") || "");
-  const url = window.location.pathname + "?variant=" + variantId;
+  const url = decodeURIComponent(item.getAttribute("data-url") || "");
 
   try {
     e.target.disabled = true;
@@ -417,8 +413,7 @@ fetch("/cart.js")
       productContainer.addEventListener("change", async (e) => {
         if (e.target.classList.contains("wishlist-qty")) {
           const item = e.target.closest(".wishlist-item");
-          const formInput = document.querySelector('form[action^="/cart/add"] input[name="id"]');
-          const variantId = formInput?.value;
+          const variantId = item?.getAttribute("data-variant-id");
           const quantity = Number(e.target.value) || 1;
           if (!variantId || !window.customerId) return;
 
@@ -497,14 +492,7 @@ async function enrichPricesInWishlist(products) {
 }
 
 
-document.addEventListener("change", function (e) {
-  if (e.target.matches("form[action^='/cart/add'] select[name='id']")) {
-    const selectedId = e.target.value;
-    document.querySelectorAll(".wishlist-button").forEach((btn) => {
-      btn.setAttribute("data-variant-id", selectedId);
-    });
-  }
-});
+
 
 
 })();
