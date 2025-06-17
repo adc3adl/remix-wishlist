@@ -183,7 +183,11 @@ if (prehideStyle) prehideStyle.remove();
        alt="${p.title}" />
 
   <div style="flex: 1;">
-    <div class="wishlist-title">${p.title}</div>
+   <div class="wishlist-title">
+  <a href="${p.url || `/products/${p.handle || ''}`}" target="_blank" rel="noopener noreferrer">
+    ${p.title}
+  </a>
+</div>
     ${p.variantTitle ? `<div class="wishlist-variant">Variant: ${p.variantTitle}</div>` : ""}
     <div class="wishlist-price">${p.price} ${p.currency || 'UAH'}</div>
   </div>
