@@ -240,17 +240,26 @@ if (prehideStyle) prehideStyle.remove();
     if (productContainer) {
       productContainer.addEventListener("click", async (e) => {
         if (e.target.classList.contains("qty-btn")) {
-          const isMinus = e.target.classList.contains("qty-minus");
-          const qtyInput = e.target.closest(".qty-control").querySelector(".wishlist-qty");
-          let current = parseInt(qtyInput.value) || 1;
-          if (isMinus && current > 1) current--;
-          if (!isMinus) current++;
-          qtyInput.value = current;
-          qtyInput.dispatchEvent(new Event("change", { bubbles: true }));
-          e.preventDefault();
-          e.stopPropagation();
-          return;
+        const isMinus = e.target.classList.contains("qty-minus");
+        const qtyInput = e.target.closest(".qty-control").querySelector(".wishlist-qty");
+        let current = parseInt(qtyInput.value) || 1;
+
+        if (isMinus && current > 1) current--;
+        if (!isMinus) current++;
+
+        qtyInput.value = current;
+        qtyInput.dispatchEvent(new Event("change", { bubbles: true }));
+
+        // 🔧 обновляем disabled у минус-кнопки
+        const minusBtn = e.target.closest(".qty-control").querySelector(".qty-minus");
+        if (minusBtn) {
+          minusBtn.disabled = current <= 1;
         }
+
+  e.preventDefault();
+  e.stopPropagation();
+  return;
+}
 
 if (e.target.classList.contains("wishlist-remove")) {
   e.preventDefault();
