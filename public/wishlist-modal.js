@@ -193,7 +193,7 @@ if (prehideStyle) prehideStyle.remove();
   </div>
 
   <div class="qty-control">
-    <button type="button" class="qty-btn qty-minus">−</button>
+     <button type="button" class="qty-btn qty-minus" ${p.quantity <= 1 ? 'disabled' : ''}>−</button>
     <input type="number" class="wishlist-qty" min="1" value="${p.quantity || 1}" />
     <button type="button" class="qty-btn qty-plus">+</button>
   </div>
