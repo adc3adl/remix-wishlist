@@ -341,7 +341,7 @@ document.addEventListener("click", async function (e) {
       const res = await fetch(`${API_URL}/api/wishlist`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ customerId, productId: variantId, action })
+        body: JSON.stringify({ customerId, variantId, action })
       });
 
       const result = await res.json();

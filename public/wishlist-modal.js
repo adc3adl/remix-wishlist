@@ -276,11 +276,11 @@ if (e.target.classList.contains("wishlist-remove")) {
         "Content-Type": "application/json",
         "ngrok-skip-browser-warning": "true"
       },
-      body: JSON.stringify({
-        customerId: window.customerId,
-        productId: variantId,
-        action: "remove"
-      })
+        body: JSON.stringify({
+          customerId: window.customerId,
+          variantId,
+          action: "remove"
+        })
     });
 
     const result = await res.json();
@@ -349,7 +349,7 @@ if (e.target.classList.contains("wishlist-add-to-cart")) {
       },
       body: JSON.stringify({
         customerId: window.customerId,
-        productId: variantId,
+        variantId,
         quantity,
         source: "wishlist-modal",
         title,
@@ -426,7 +426,7 @@ fetch("/cart.js")
               },
               body: JSON.stringify({
                 customerId: window.customerId,
-                productId: variantId,
+                variantId,
                 quantity,
                 action: "update"
               })

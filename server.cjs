@@ -159,7 +159,7 @@ app.post("/api/add-to-cart", (req, res) => {
 
 // === Wishlist logic
 app.post("/api/wishlist", async (req, res) => {
-  const { customerId, productId: variantId, action, quantity } = req.body;
+  const { customerId, variantId, action, quantity } = req.body;
   if (!customerId || !variantId || !["add", "remove", "update"].includes(action)) {
     return res.status(400).json({ error: "Invalid input" });
   }
