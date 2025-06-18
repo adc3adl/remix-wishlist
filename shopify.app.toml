@@ -1,0 +1,19 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "e4a80f3a56a6509717a3521cfdb7d0c4"
+name = "1006app"
+handle = "1006app"
+application_url = "https://remix-wishlist.onrender.com/"
+embedded = true
+
+[webhooks]
+api_version = "2025-04"
+
+[auth]
+redirect_urls = [
+  "https://remix-wishlist.onrender.com/auth",
+  "https://remix-wishlist.onrender.com/auth/callback"
+]
+
+[pos]
+embedded = false

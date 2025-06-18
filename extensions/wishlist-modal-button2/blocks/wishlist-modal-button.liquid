@@ -1,0 +1,80 @@
+<!-- ❤️ Wishlist Toggle Button + Стили для cart-bubble -->
+<style>
+.cart-count-bubble {
+  position: absolute;
+  /*right: -6px;
+  top: -6px;*/
+  width: 18px;
+  height: 18px;
+  background-color: #e63946;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 600;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  z-index: 10;
+  box-shadow: 0 0 0 2px white;
+  line-height: 1; 
+  padding: 0;
+  font-family: Arial, sans-serif; 
+  padding-left: 1px;
+}
+.header__icon--cart,
+.site-header__cart,
+a[href="/cart"] {
+  position: relative;
+}
+
+  #wishlist-toggle {
+    margin-left: 8px; /* ✅ добавлен отступ от корзины */
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #wishlist-toggle:hover svg {
+    transform: scale(1.1);
+    stroke: #c92b37;
+    fill: #c92b37;
+  }
+</style>
+
+<!-- Кнопка Wishlist с SVG -->
+<button
+  id="wishlist-toggle"
+  aria-label="Open wishlist"
+  type="button"
+>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="#e63946"
+    stroke="#e63946"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    class="wishlist-toggle-icon"
+    style="transition: all 0.2s ease;"
+  >
+    <path d="M20.8 4.6c-1.5-1.4-3.9-1.4-5.4 0L12 8l-3.4-3.4c-1.5-1.4-3.9-1.4-5.4 0-1.5 1.5-1.5 3.9 0 5.4l8.8 8.8 8.8-8.8c1.5-1.5 1.5-3.9 0-5.4z"/>
+  </svg>
+</button>
+
+<!-- 🧠 Повторный запуск wishlist.js (если был подключён как script) -->
+<script>
+  setTimeout(() => {
+    const toggleBtn = document.getElementById('wishlist-toggle');
+    if (toggleBtn && typeof main === 'function') {
+      main(); // перезапуск wishlist
+    }
+  }, 500);
+</script>
