@@ -60,7 +60,11 @@
   color: #555;
   margin-top: 2px;
 }
-  
+  .qty-btn:disabled {
+  color: #aaa;
+  opacity: 0.5;
+  cursor: not-allowed;
+}
     `;
     document.head.appendChild(style);
   }
