@@ -275,64 +275,64 @@ app.get("/api/wishlist-get", async (req, res) => {
     if (!tokenRow?.token) return res.status(401).json({ error: "No valid token found for shop" });
     const token = tokenRow.token;
 
-    const { data: metafieldsData } = await axios.get(`https://${SHOP}/admin/api/2024-01/customers/${customerId}/metafields.json`, {
-      headers: { "X-Shopify-Access-Token": token }
-    });
+    const { data: metafieldsData } = await axios.get(
+      `https://${SHOP}/admin/api/2024-01/customers/${customerId}/metafields.json`,
+      { headers: { "X-Shopify-Access-Token": token } }
+    );
 
-    const metafield = metafieldsData.metafields.find(f => f.namespace === "custom_data" && f.key === "wishlist");
+    const metafield = metafieldsData.metafields.find(
+      f => f.namespace === "custom_data" && f.key === "wishlist"
+    );
     if (!metafield?.value) return res.json({ products: [] });
 
     const variantEntries = JSON.parse(metafield.value).filter(Boolean);
-    if (!Array.isArray(variantEntries) || variantEntries.length === 0) return res.json({ products: [] });
+    if (!Array.isArray(variantEntries) || variantEntries.length === 0)
+      return res.json({ products: [] });
 
-    const variantMap = new Map();
-    const uniqueProductIds = new Set();
+    const variantList = [];
 
     for (const entry of variantEntries) {
       const variantId = typeof entry === "object" ? entry.id : entry;
+
       try {
-        const { data: variantData } = await axios.get(`https://${SHOP}/admin/api/2024-01/variants/${variantId}.json`, {
-          headers: { "X-Shopify-Access-Token": token }
-        });
+        // Получаем вариант
+        const { data: variantData } = await axios.get(
+          `https://${SHOP}/admin/api/2024-01/variants/${variantId}.json`,
+          { headers: { "X-Shopify-Access-Token": token } }
+        );
+
         const variant = variantData.variant;
         const productId = variant.product_id;
-        uniqueProductIds.add(productId);
 
-        variantMap.set(productId, {
+        // Получаем продукт
+        const { data: productData } = await axios.get(
+          `https://${SHOP}/admin/api/2024-01/products/${productId}.json`,
+          { headers: { "X-Shopify-Access-Token": token } }
+        );
+
+        const product = productData.product;
+
+        const imageObj =
+          product.images.find(img => img.id === variant.image_id) ||
+          product.image ||
+          product.images?.[0];
+
+        variantList.push({
           id: variantId,
           quantity: entry.quantity || 1,
-          title: variant.title,
-          image_id: variant.image_id
+          title: product.title,
+          variantTitle: variant.title,
+          handle: product.handle,
+          url: `/products/${product.handle}?variant=${variantId}`,
+          currency: "UAH",
+          image: imageObj?.src || "https://placehold.co/80x80?text=No+Image"
         });
       } catch (err) {
-        console.error("❌ Variant fetch error:", err.response?.data || err.message);
+        console.error("❌ Ошибка получения варианта:", err.response?.data || err.message);
       }
     }
 
-    const { data: productData } = await axios.get(`https://${SHOP}/admin/api/2024-01/products.json`, {
-      headers: { "X-Shopify-Access-Token": token },
-      params: { ids: Array.from(uniqueProductIds).join(",") }
-    });
-
-    const products = productData.products.map(p => {
-      const v = variantMap.get(p.id);
-      const variant = p.variants.find(variant => variant.id === v?.id);
-      const imageObj = p.images.find(img => img.id === v?.image_id) || p.image || p.images?.[0];
-
-      return {
-        id: v?.id || p.variants[0]?.id,
-        title: p.title,
-        variantTitle: v?.title || variant?.title || "",
-        url: `/products/${p.handle}`,
-        handle: p.handle, //вместо price
-        //price: variant?.price || p.variants[0]?.price || '—',
-        currency: 'UAH',
-        image: imageObj?.src || "https://placehold.co/80x80?text=No+Image",
-        quantity: v?.quantity || 1
-      };
-    });
-
-    res.json({ products });
+    res.json({ products: variantList });
   } catch (e) {
     console.error("❌ wishlist-get error:", e.response?.data || e.message);
     res.status(500).json({ error: "Server error" });
