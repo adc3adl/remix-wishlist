@@ -150,7 +150,7 @@ if (prehideStyle) prehideStyle.remove();
     }
   });
 
-    const toggleBtn = document.getElementById("wishlist-toggle");
+    //const toggleBtn = document.getElementById("wishlist-toggle");
     const modal = document.getElementById("wishlist-modal");
     const closeBtn = document.getElementById("wishlist-close");
     const productContainer = document.getElementById("wishlist-products");
@@ -220,12 +220,16 @@ if (prehideStyle) prehideStyle.remove();
   }
 }
 
-    if (toggleBtn && modal && productContainer) {
-      toggleBtn.addEventListener("click", async () => {
-        openModal(modal);
-        await fetchWishlist();
-      });
-    }
+document.addEventListener("click", async (e) => {
+  const toggle = e.target.closest("#wishlist-toggle");
+  if (toggle) {
+    const modal = document.getElementById("wishlist-modal");
+    const productContainer = document.getElementById("wishlist-products");
+    if (!modal || !productContainer) return;
+    openModal(modal);
+    await fetchWishlist();
+  }
+});
 
     if (modal) {
       modal.addEventListener("mousedown", (e) => {
