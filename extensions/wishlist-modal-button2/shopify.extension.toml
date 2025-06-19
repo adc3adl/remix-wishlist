@@ -1,3 +1,10 @@
 name = "wishlist-modal-button2"
-type = "theme"
+type = "theme_app_extension"
 
+[[blocks]]
+name = "wishlist-button"
+target = "section"
+
+[[blocks]]
+name = "wishlist-modal-button"
+target = "section"
