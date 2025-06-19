@@ -376,7 +376,7 @@ document.addEventListener("click", async function (e) {
             body: JSON.stringify({ customerId, variantId, action: "remove" })
           });
           if (res.ok) {
-            cachedWishlistIds = cachedWishlistIds.filter(id => String(id) !== variantId);
+            window.cachedWishlistIds = window.cachedWishlistIds.filter(id => String(id) !== variantId);
             syncWishlistButtons();
             window.__wishlistRemovedCache = window.__wishlistRemovedCache || new Set();
             window.__wishlistRemovedCache.add(variantId);
