@@ -8,3 +8,7 @@ target = "section"
 [[blocks]]
 name = "wishlist-modal-button"
 target = "section"
+
+[[blocks]]
+name = "wishlist-modal"
+target = "section"

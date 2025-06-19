@@ -1,0 +1,325 @@
+<!-- Modal wishlist container -->
+<div id="wishlist-modal" class="wishlist-modal-v2">
+  <div class="wishlist-modal-content-v2">
+    <button id="wishlist-close" class="wishlist-modal-close" aria-label="Close">&times;</button>
+    <h2 class="text-2xl font-semibold mb-4">❤️ Wishlist ❤️</h2>
+    <div id="wishlist-products" class="wishlist-items-container-v2"></div>
+    <div id="wishlist-empty" class="text-center text-gray-500 hidden">
+      Your wishlist is empty.
+    </div>
+  </div>
+</div>
+
+<style>
+  .wishlist-modal-v2 {
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    opacity: 0 !important;
+    pointer-events: none;
+    transition: opacity 0.4s ease !important;
+  }
+
+  .wishlist-modal-v2.show {
+    opacity: 1 !important;
+    pointer-events: auto;
+  }
+
+  .wishlist-modal-v2.hiding {
+    opacity: 0 !important;
+    pointer-events: none;
+  }
+
+  .wishlist-modal-content-v2 {
+    position: relative !important;
+    background: white;
+    max-width: 700px;
+    width: 95%;
+    padding: 24px;
+    border-radius: 20px;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+    font-family: sans-serif;
+    transform: scale(0.96);
+    transition: transform 0.4s ease !important;
+  }
+
+  .wishlist-modal-v2.show .wishlist-modal-content-v2 {
+    transform: scale(1);
+  }
+
+.wishlist-items-container-v2 .wishlist-item-v2 {
+  margin: 10px -10px;
+  padding: 14px 10px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: background 0.2s ease, opacity 2s ease, transform 2s ease; /* ✅ transform */
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+  .wishlist-items-container-v2 .wishlist-item-v2:hover {
+    background: #f5f7f9;
+  }
+
+  .wishlist-item-v2.fading-out {
+    opacity: 0;
+    transform: translateX(50px);
+   transition: transform 2s ease, opacity 2s ease !important;
+  }
+
+  .wishlist-item-image-v2 {
+    width: 70px;
+    height: 70px;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+    background: #fafafa;
+  }
+
+  .wishlist-item-title-v2 {
+    flex: 1;
+    font-weight: 600;
+    font-size: 16px;
+    color: #1a202c;
+  }
+
+  .wishlist-item-qty-v2 {
+    width: 56px;
+    font-size: 16px;
+    padding: 4px;
+    text-align: center;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+  }
+
+  .wishlist-item-cart-btn-v2,
+  .wishlist-item-remove-btn-v2 {
+    background: #8fcafc;
+    color: #fff;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 15px;
+    transition: background 0.2s;
+  }
+
+  .wishlist-item-remove-btn-v2 {
+    background: #e63946;
+  }
+
+  .wishlist-item-cart-btn-v2:hover {
+    background: #5eb0f5;
+  }
+
+  .wishlist-item-remove-btn-v2:hover {
+    background: #cc2e3f;
+  }
+
+  .wishlist-modal-close {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    background: transparent;
+    border: none;
+    font-size: 24px;
+    color: #666;
+    cursor: pointer;
+  }
+
+  .wishlist-modal-close:hover {
+    color: #222;
+  }
+   .wishlist-item.fading-out {
+    opacity: 0;
+    transform: translateX(50px);
+    transition: transform 2s ease, opacity 2s ease !important;
+  }
+</style>
+
+<script>
+  function updateCartCount(count) {
+    const selectors = [
+      ".cart-count-bubble",
+      ".cart-count",
+      "#cart-count",
+      "[data-cart-count]"
+    ];
+
+    selectors.forEach(selector => {
+      document.querySelectorAll(selector).forEach(el => {
+        const ariaSpan = el.querySelector('span[aria-hidden="true"]');
+        if (ariaSpan) ariaSpan.textContent = count;
+
+        const hiddenSpan = el.querySelector('span.visually-hidden');
+        if (hiddenSpan) hiddenSpan.textContent = `${count} item${count !== 1 ? 's' : ''}`;
+
+        if (el.hasAttribute("data-cart-count")) {
+          el.setAttribute("data-cart-count", count);
+        }
+
+        if (el.id === "cart-count") {
+          el.textContent = count;
+        }
+
+        el.classList.add("visible");
+      });
+    });
+  }
+
+  function renderWishlist(products) {
+    const container = document.getElementById('wishlist-products');
+    const emptyBlock = document.getElementById('wishlist-empty');
+    container.innerHTML = '';
+
+    if (!products || !products.length) {
+      container.classList.add('hidden');
+      emptyBlock.classList.remove('hidden');
+      return;
+    }
+
+    container.classList.remove('hidden');
+    emptyBlock.classList.add('hidden');
+
+    products.forEach(item => {
+      const itemDiv = document.createElement('div');
+      itemDiv.className = 'wishlist-item-v2';
+      itemDiv.setAttribute('data-variant-id', item.id);
+
+      itemDiv.innerHTML = `
+        <img class="wishlist-item-image-v2" src="${item.image || ''}" alt="${item.title}">
+        <div class="wishlist-item-title-v2">
+        ${item.title || 'No title'}
+        ${item.variantTitle ? ` <span style="display:block;font-size:14px;color:#666;">${item.variantTitle}</span>` : ''}
+        </div>
+        <input type="number" class="wishlist-item-qty-v2" min="1" value="${item.quantity || 1}">
+        <button class="wishlist-item-cart-btn-v2 wishlist-add-to-cart">Add to cart</button>
+        <button class="wishlist-item-remove-btn-v2">✕</button>
+      `;
+
+      container.appendChild(itemDiv);
+    });
+  }
+
+  async function removeWishlistItem(variantId, element) {
+    console.log("⏳ Удаляем элемент с анимацией:", element);
+    element.classList.add("fading-out");
+
+    setTimeout(async () => {
+      const res = await fetch("https://remix-wishlist.onrender.com/api/wishlist", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "ngrok-skip-browser-warning": "true"
+        },
+        body: JSON.stringify({
+          customerId: window.customerId,
+          variantId,
+          action: "remove"
+        })
+      });
+
+      if (res.ok) {
+        element.remove();
+        if (document.getElementById("wishlist-products").children.length === 0) {
+          document.getElementById("wishlist-empty").classList.remove("hidden");
+        }
+      }
+    }, 2000);
+  }
+
+  document.addEventListener('click', function (e) {
+    const modal = document.getElementById('wishlist-modal');
+
+    // Показываем модалку — логика уже есть в wishlist-modal.js
+    if (e.target.closest('#wishlist-toggle')) {
+      if (modal) {
+        modal.classList.remove('hiding', 'hidden');
+        requestAnimationFrame(() => modal.classList.add('show'));
+      }
+    }
+
+    // Закрытие — передано в глобальную функцию closeModal()
+    if (e.target.id === 'wishlist-close' || e.target === modal) {
+      if (window.closeModal && typeof window.closeModal === "function") {
+        window.closeModal(modal);
+      } else {
+        // fallback если closeModal не определена
+        modal.classList.remove('show');
+        modal.classList.add('hiding');
+        setTimeout(() => {
+          modal.classList.remove('hiding');
+          modal.classList.add('hidden');
+        }, 400);
+      }
+    }
+
+    // Добавление в корзину
+    if (e.target.classList.contains('wishlist-add-to-cart')) {
+      const itemDiv = e.target.closest('.wishlist-item-v2');
+      const variantId = itemDiv.getAttribute('data-variant-id');
+      const qtyInput = itemDiv.querySelector('.wishlist-item-qty-v2');
+      const quantity = Number(qtyInput.value) || 1;
+
+      fetch('/cart/add.js', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: variantId, quantity })
+      })
+        .then(res => {
+          if (!res.ok) throw new Error('Ошибка добавления');
+          return res.json();
+        })
+        .then(() => {
+          const title = itemDiv.querySelector('.wishlist-item-title-v2')?.textContent?.trim() || '';
+
+          fetch('https://remix-wishlist.onrender.com/api/add-to-cart', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'ngrok-skip-browser-warning': 'true'
+            },
+            body: JSON.stringify({
+              customerId: window.customerId || '',
+              productId: variantId,
+              quantity,
+              source: 'wishlist-modal',
+              title,
+              url: window.location.pathname
+            })
+          });
+
+          fetch('/cart.js')
+            .then(r => r.json())
+            .then(cart => {
+              updateCartCount(cart.item_count);
+              window.ensureCartDrawerThenOpen?.(); // вызываем только если определена
+              document.dispatchEvent(new CustomEvent("cart:refresh"));
+            });
+        });
+    }
+
+    // Удаление товара
+    if (e.target.classList.contains('wishlist-item-remove-btn-v2')) {
+      const itemDiv = e.target.closest('.wishlist-item-v2');
+      const variantId = itemDiv.getAttribute('data-variant-id');
+      console.log("🧪 Клик по кнопке удаления. variantId:", variantId, itemDiv);
+      removeWishlistItem(variantId, itemDiv);
+    }
+  });
+</script>
+
+{% schema %}
+{
+  "name": "Wishlist Modal Embed",
+  "target": "body",
+  "settings": []
+}
+{% endschema %}
