@@ -1,0 +1,272 @@
+<!-- ❤️ Wishlist Button -->
+<button
+  type="button"
+  class="wishlist-button hidden-before-init"
+  data-variant-id="{{ product.selected_or_first_available_variant.id }}"
+  aria-label="Toggle wishlist"
+>
+  <svg
+    class="wishlist-icon"
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="#e63946"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    width="24"
+    height="24"
+  >
+    <path d="M20.8 4.6c-1.5-1.4-3.9-1.4-5.4 0L12 8l-3.4-3.4c-1.5-1.4-3.9-1.4-5.4 0-1.5 1.5-1.5 3.9 0 5.4l8.8 8.8 8.8-8.8c1.5-1.5 1.5-3.9 0-5.4z"/>
+  </svg>
+</button>
+
+<!-- 🔒 Modal for unauthorized users -->
+<div id="wishlist-login-modal" class="wishlist-login-modal hidden">
+  <div class="wishlist-login-content">
+    <p>Please <a href="/account/login" class="underline text-blue-600">log in</a> to use your wishlist ❤️</p>
+    <button id="wishlist-login-close" class="wishlist-login-close">✕</button>
+  </div>
+</div>
+
+<style>
+  .wishlist-button {
+    position: absolute !important;
+    top: 10px !important;
+    right: 10px !important;
+    z-index: 10 !important;
+    cursor: pointer;
+    display: inline-block;
+    padding: 0;
+    background: none;
+    border: none;
+    pointer-events: auto;
+    transition: visibility 0.2s ease, opacity 0.2s ease;
+    opacity: 1;
+  }
+
+  .wishlist-button svg {
+    stroke: #e63946;
+    fill: none;
+  }
+
+  .wishlist-button.added svg {
+    fill: #e63946;
+  }
+
+  .wishlist-button:hover svg {
+    transform: scale(1.1);
+  }
+
+  .wishlist-button.hidden-before-init {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .wishlist-button:not(.hidden-before-init) {
+    transition: opacity 0.3s ease;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .wishlist-icon.pulse {
+    animation: pulse 0.25s ease;
+  }
+
+  @keyframes pulse {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.3); }
+    100% { transform: scale(1); }
+  }
+
+  .wishlist-login-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+  }
+
+  .wishlist-login-modal.show {
+    display: flex;
+  }
+
+  .wishlist-login-content {
+    background: white;
+    padding: 20px 30px;
+    border-radius: 10px;
+    font-family: sans-serif;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  }
+
+  .wishlist-login-close {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    background: transparent;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #999;
+  }
+
+  .wishlist-login-close:hover {
+    color: #222;
+  }
+</style>
+<script>
+  window.API_URL = window.API_URL || "https://remix-wishlist.onrender.com";
+  window.cachedWishlistIds = [];
+
+  function updateWishlistIcon(el, isAdded, isFromClick = false) {
+    const svg = el.querySelector('svg');
+    if (!svg) return;
+
+    if (isAdded) {
+      el.classList.add('added');
+      svg.setAttribute('fill', '#e63946');
+      svg.setAttribute('stroke', '#e63946');
+    } else {
+      el.classList.remove('added');
+      svg.setAttribute('fill', 'none');
+      svg.setAttribute('stroke', '#e63946');
+    }
+
+    el.classList.remove('hidden-before-init');
+
+    if (isFromClick) {
+      svg.classList.remove('pulse');
+      void svg.offsetWidth;
+      svg.classList.add('pulse');
+    }
+  }
+
+  async function toggleWishlist(el) {
+    if (el.dataset.processing === "true") return;
+
+    const variantId = el.dataset.variantId;
+    const customerId = window.customerId;
+    if (!customerId || !variantId) return;
+
+    el.dataset.processing = "true";
+    const isCurrentlyAdded = window.cachedWishlistIds.includes(variantId);
+    const optimisticState = !isCurrentlyAdded;
+
+    updateWishlistIcon(el, optimisticState, true);
+
+    try {
+      const res = await fetch(`${window.API_URL}/api/wishlist`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "ngrok-skip-browser-warning": "true"
+        },
+        body: JSON.stringify({ customerId, variantId, action: optimisticState ? "add" : "remove" })
+      });
+
+      const data = await res.json();
+
+      if (data?.status === "ok") {
+        const isNowAdded = data.wishlist.some(p => String(p?.id || p) === variantId);
+        if (isNowAdded && !window.cachedWishlistIds.includes(variantId)) {
+          window.cachedWishlistIds.push(variantId);
+        } else if (!isNowAdded) {
+          window.cachedWishlistIds = window.cachedWishlistIds.filter(id => String(id) !== variantId);
+          window.__wishlistRemovedCache = window.__wishlistRemovedCache || new Set();
+          window.__wishlistRemovedCache.add(variantId);
+          setTimeout(() => window.__wishlistRemovedCache.delete(variantId), 3000);
+        }
+      } else {
+        updateWishlistIcon(el, isCurrentlyAdded);
+        console.warn("⚠️ Сервер вернул ошибку:", data);
+      }
+    } catch (err) {
+      console.error("❗ toggleWishlist error:", err);
+      updateWishlistIcon(el, isCurrentlyAdded);
+    } finally {
+      el.dataset.processing = "false";
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    const buttons = document.querySelectorAll('.wishlist-button');
+    const loginModal = document.getElementById("wishlist-login-modal");
+    const loginClose = document.getElementById("wishlist-login-close");
+
+    loginClose?.addEventListener("click", () => {
+      loginModal.classList.remove("show");
+    });
+
+    buttons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        if (!window.customerId) {
+          loginModal?.classList.add("show");
+          return;
+        }
+        toggleWishlist(btn);
+      });
+    });
+
+    if (!window.customerId) {
+      buttons.forEach(btn => {
+        btn.dataset.initialized = "true";
+        btn.classList.remove("hidden-before-init");
+      });
+      return;
+    }
+
+    try {
+      const res = await fetch(`${window.API_URL}/api/wishlist-get?customerId=${window.customerId}`, {
+        headers: { "ngrok-skip-browser-warning": "true" }
+      });
+
+      const data = await res.json();
+      window.cachedWishlistIds = data.products?.map(p => String(p.id)) || [];
+
+      buttons.forEach(btn => {
+        const vid = btn.dataset.variantId;
+        if (btn.dataset.initialized === "true") return;
+
+        const isAdded = window.cachedWishlistIds.includes(vid);
+        btn.dataset.initialized = "true";
+        updateWishlistIcon(btn, isAdded);
+      });
+
+      document.body.classList.add("wishlist-ready");
+    } catch (err) {
+      console.error("❗ init error:", err);
+    }
+  });
+</script>
+<script>
+  // Автоматическое обновление variantId при выборе варианта
+document.addEventListener("change", function (e) {
+  if (e.target.name === "id") {
+    const newVariantId = e.target.value;
+
+    document.querySelectorAll(".wishlist-button").forEach((btn) => {
+      btn.setAttribute("data-variant-id", newVariantId);
+
+      const isInWishlist = window.cachedWishlistIds.includes(newVariantId);
+      updateWishlistIcon(btn, isInWishlist);
+    });
+
+    console.log("❤️ Обновлён variantId:", newVariantId);
+  }
+});
+</script>
+{% schema %}
+{
+  "name": "Wishlist Button",
+  "target": "section",
+  "settings": [],
+  "presets": [
+    {
+      "name": "Wishlist Button"
+    }
+  ]
+}
+{% endschema %}
