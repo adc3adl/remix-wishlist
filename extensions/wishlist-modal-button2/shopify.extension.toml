@@ -9,7 +9,6 @@ target = "section"
 name = "wishlist-modal-button"
 target = "section"
 
-[app_embed]
-name = "Wishlist Modal"
+[[blocks]]
+name = "wishlist-modal"
 target = "body"
-snippet_name = "wishlist-modal"

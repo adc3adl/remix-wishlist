@@ -482,6 +482,32 @@ document.addEventListener("click", async function (e) {
     document.addEventListener("DOMContentLoaded", main);
   } else {
     main();
+
+
+    
+// 🔁 Обновляем variantId при смене варианта товара
+document.addEventListener("change", function (e) {
+  if (e.target.name === "id") {
+    const newVariantId = e.target.value;
+
+    document.querySelectorAll(".wishlist-button").forEach((btn) => {
+      btn.setAttribute("data-variant-id", newVariantId);
+      const isInWishlist = window.cachedWishlistIds?.includes(newVariantId);
+      const svg = btn.querySelector("svg");
+      if (svg) {
+        svg.setAttribute("fill", isInWishlist ? "#e63946" : "none");
+        svg.setAttribute("stroke", "#e63946");
+      }
+      btn.classList.toggle("added", isInWishlist);
+    });
+
+    console.log("✅ Обновлён variantId:", newVariantId);
+  }
+});
+
+
+
+
   }
 })();
 
