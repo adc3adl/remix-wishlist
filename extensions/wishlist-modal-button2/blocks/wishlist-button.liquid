@@ -19,7 +19,7 @@
     height="24"
   >
     <path d="M20.8 4.6c-1.5-1.4-3.9-1.4-5.4 0L12 8l-3.4-3.4c-1.5-1.4-3.9-1.4-5.4 0-1.5 1.5-1.5 3.9 0 5.4l8.8 8.8 8.8-8.8c1.5-1.5 1.5-3.9 0-5.4z"/>
-  </svg>
+  </svg>222
 </button>
 
 
@@ -119,36 +119,29 @@
     color: #222;
   }
 </style>
+
 <script>
   window.API_URL = window.API_URL || "https://remix-wishlist.onrender.com";
   window.cachedWishlistIds = [];
 
   function updateWishlistIcon(el, isAdded, isFromClick = false) {
-    const svg = el.querySelector('svg');
+    const svg = el.querySelector("svg");
     if (!svg) return;
 
-    if (isAdded) {
-      el.classList.add('added');
-      svg.setAttribute('fill', '#e63946');
-      svg.setAttribute('stroke', '#e63946');
-    } else {
-      el.classList.remove('added');
-      svg.setAttribute('fill', 'none');
-      svg.setAttribute('stroke', '#e63946');
-    }
-
-    el.classList.remove('hidden-before-init');
+    el.classList.toggle("added", isAdded);
+    svg.setAttribute("fill", isAdded ? "#e63946" : "none");
+    svg.setAttribute("stroke", "#e63946");
+    el.classList.remove("hidden-before-init");
 
     if (isFromClick) {
-      svg.classList.remove('pulse');
+      svg.classList.remove("pulse");
       void svg.offsetWidth;
-      svg.classList.add('pulse');
+      svg.classList.add("pulse");
     }
   }
 
   async function toggleWishlist(el) {
-    if (el.dataset.processing === "true") return;
-
+    if (el.dataset.processing === "true" || el.dataset.initialized !== "true") return;
     const variantId = el.dataset.variantId;
     const customerId = window.customerId;
     if (!customerId || !variantId) return;
@@ -156,7 +149,6 @@
     el.dataset.processing = "true";
     const isCurrentlyAdded = window.cachedWishlistIds.includes(variantId);
     const optimisticState = !isCurrentlyAdded;
-
     updateWishlistIcon(el, optimisticState, true);
 
     try {
@@ -164,45 +156,65 @@
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "ngrok-skip-browser-warning": "true"
+          "ngrok-skip-browser-warning": "true",
         },
-        body: JSON.stringify({ customerId, variantId, action: optimisticState ? "add" : "remove" })
+        body: JSON.stringify({
+          customerId,
+          variantId,
+          action: optimisticState ? "add" : "remove",
+        }),
       });
 
       const data = await res.json();
-
       if (data?.status === "ok") {
-        const isNowAdded = data.wishlist.some(p => String(p?.id || p) === variantId);
-        if (isNowAdded && !window.cachedWishlistIds.includes(variantId)) {
-          window.cachedWishlistIds.push(variantId);
-        } else if (!isNowAdded) {
-          window.cachedWishlistIds = window.cachedWishlistIds.filter(id => String(id) !== variantId);
-          window.__wishlistRemovedCache = window.__wishlistRemovedCache || new Set();
-          window.__wishlistRemovedCache.add(variantId);
-          setTimeout(() => window.__wishlistRemovedCache.delete(variantId), 3000);
-        }
+        const ids = data.wishlist.map((p) => String(p.id || p));
+        window.cachedWishlistIds = ids;
       } else {
         updateWishlistIcon(el, isCurrentlyAdded);
-        console.warn("⚠️ Сервер вернул ошибку:", data);
       }
     } catch (err) {
-      console.error("❗ toggleWishlist error:", err);
       updateWishlistIcon(el, isCurrentlyAdded);
     } finally {
       el.dataset.processing = "false";
     }
   }
 
-  document.addEventListener("DOMContentLoaded", async () => {
-    const buttons = document.querySelectorAll('.wishlist-button');
+  async function initializeWishlistButtons() {
+    const buttons = document.querySelectorAll(".wishlist-button");
     const loginModal = document.getElementById("wishlist-login-modal");
     const loginClose = document.getElementById("wishlist-login-close");
 
     loginClose?.addEventListener("click", () => {
-      loginModal.classList.remove("show");
+      loginModal?.classList.remove("show");
     });
 
-    buttons.forEach(btn => {
+    if (!window.customerId) {
+      buttons.forEach((btn) => {
+        btn.classList.remove("hidden-before-init");
+        btn.dataset.initialized = "true";
+      });
+      return;
+    }
+
+    try {
+      const res = await fetch(`${window.API_URL}/api/wishlist-get?customerId=${window.customerId}`, {
+        headers: { "ngrok-skip-browser-warning": "true" },
+      });
+      const data = await res.json();
+      window.cachedWishlistIds = data.products?.map((p) => String(p.id)) || [];
+    } catch (e) {
+      console.warn("❌ Не удалось загрузить wishlist", e);
+      return;
+    }
+
+    const variantId = getCurrentVariantIdFromUrl();
+    buttons.forEach((btn) => {
+      if (variantId) btn.setAttribute("data-variant-id", variantId);
+      btn.dataset.initialized = "true";
+
+      const isInWishlist = window.cachedWishlistIds.includes(variantId);
+      updateWishlistIcon(btn, isInWishlist);
+
       btn.addEventListener("click", () => {
         if (!window.customerId) {
           loginModal?.classList.add("show");
@@ -211,91 +223,53 @@
         toggleWishlist(btn);
       });
     });
+  }
 
-    if (!window.customerId) {
-      buttons.forEach(btn => {
-        btn.dataset.initialized = "true";
-        btn.classList.remove("hidden-before-init");
-      });
-      return;
-    }
+  function recreateWishlistButtons(newVariantId) {
+    document.querySelectorAll(".wishlist-button").forEach((oldBtn) => {
+      const parent = oldBtn.parentElement;
+      const newBtn = oldBtn.cloneNode(true);
 
-    try {
-      const res = await fetch(`${window.API_URL}/api/wishlist-get?customerId=${window.customerId}`, {
-        headers: { "ngrok-skip-browser-warning": "true" }
-      });
-
-      const data = await res.json();
-      window.cachedWishlistIds = data.products?.map(p => String(p.id)) || [];
-
-      buttons.forEach(btn => {
-        const vid = btn.dataset.variantId;
-        if (btn.dataset.initialized === "true") return;
-
-        const isAdded = window.cachedWishlistIds.includes(vid);
-        btn.dataset.initialized = "true";
-        updateWishlistIcon(btn, isAdded);
-      });
-
-      document.body.classList.add("wishlist-ready");
-    } catch (err) {
-      console.error("❗ init error:", err);
-    }
-  });
-</script>
-<script>
-  // Автоматическое обновление variantId при выборе варианта
-document.addEventListener("change", function (e) {
-  if (e.target.name === "id") {
-    const newVariantId = e.target.value;
-
-    document.querySelectorAll(".wishlist-button").forEach((btn) => {
-      btn.setAttribute("data-variant-id", newVariantId);
+      newBtn.setAttribute("data-variant-id", newVariantId);
+      newBtn.classList.remove("added", "hidden-before-init");
+      newBtn.dataset.initialized = "true";
 
       const isInWishlist = window.cachedWishlistIds.includes(newVariantId);
-      updateWishlistIcon(btn, isInWishlist);
-    });
+      updateWishlistIcon(newBtn, isInWishlist);
 
-    console.log("❤️ Обновлён variantId:", newVariantId);
-  }
-});
-</script>
-
-
-
-
-
-
-<script>
-  document.addEventListener("change", function (e) {
-    if (e.target.name === "id") {
-      const newVariantId = e.target.value;
-
-      document.querySelectorAll(".wishlist-button").forEach((btn) => {
-        btn.setAttribute("data-variant-id", newVariantId);
-
-        const isInWishlist = window.cachedWishlistIds?.includes(newVariantId);
-        const svg = btn.querySelector("svg");
-        if (svg) {
-          svg.setAttribute("fill", isInWishlist ? "#e63946" : "none");
-          svg.setAttribute("stroke", "#e63946");
+      newBtn.addEventListener("click", () => {
+        if (!window.customerId) {
+          document.getElementById("wishlist-login-modal")?.classList.add("show");
+          return;
         }
-        btn.classList.toggle("added", isInWishlist);
+        toggleWishlist(newBtn);
       });
 
-      console.log("❤️ Обновлён variantId:", newVariantId);
-    }
+      parent.replaceChild(newBtn, oldBtn);
+    });
+  }
+
+  function getCurrentVariantIdFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("variant");
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    initializeWishlistButtons();
+
+    let lastVariantId = getCurrentVariantIdFromUrl();
+
+    // ✅ Слежение за изменением variantId в URL
+    setInterval(() => {
+      const current = getCurrentVariantIdFromUrl();
+      if (current && current !== lastVariantId) {
+        lastVariantId = current;
+        recreateWishlistButtons(current);
+        console.log("🆕 Обнаружена смена variantId в URL:", current);
+      }
+    }, 500);
   });
 </script>
-
-
-
-
-
-
-
-
-
 {% schema %}
 {
   "name": "Wishlist Button",
