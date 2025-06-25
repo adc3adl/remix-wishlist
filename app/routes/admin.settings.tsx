@@ -1,4 +1,3 @@
-// app/routes/admin.settings.tsx
 import { useEffect, useState } from "react";
 
 export default function AdminSettings() {
@@ -35,7 +34,7 @@ export default function AdminSettings() {
       </select>
 
       <p className="mt-4 text-gray-600">
-        This will be saved to <code>localStorage.lang</code> and affect the storefront modal.
+        This will be saved to <code>localStorage["lang"]</code> and used by the storefront modal.
       </p>
     </div>
   );
