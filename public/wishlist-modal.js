@@ -1,4 +1,19 @@
 (async function () {
+  // 🔐 Ждём, пока window.i18n появится
+if (!window.i18n) {
+  await new Promise((resolve) => {
+    const interval = setInterval(() => {
+      if (window.i18n?.loadTranslations) {
+        clearInterval(interval);
+        resolve();
+      }
+    }, 50);
+    setTimeout(() => {
+      clearInterval(interval);
+      resolve();
+    }, 2000); // максимум 2 секунды
+  });
+}
   await window.i18n.loadTranslations();
   const API_URL = "https://remix-wishlist.onrender.com";
   window.cachedWishlistIds = window.cachedWishlistIds || [];
