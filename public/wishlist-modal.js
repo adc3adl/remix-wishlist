@@ -1,4 +1,5 @@
-(function () {
+(async function () {
+  await window.i18n.loadTranslations();
   const API_URL = "https://remix-wishlist.onrender.com";
   window.cachedWishlistIds = window.cachedWishlistIds || [];
 
@@ -157,7 +158,7 @@ if (prehideStyle) prehideStyle.remove();
 
   async function fetchWishlist() {
   if (!window.customerId) {
-    productContainer.innerHTML = 'Please <a href="/account/login">log in</a> to use your wishlist ❤️';
+    productContainer.innerHTML = window.i18n.t("wishlist_login");
     return;
   }
   try {

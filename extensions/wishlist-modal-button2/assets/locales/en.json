@@ -1,0 +1,14 @@
+{
+  "wishlistTitle": "❤️ Wishlist ❤️",
+  "empty": "Your wishlist is empty.",
+  "addToCart": "Add to cart",
+  "remove": "Remove",
+    "wishlist_empty": "Your wishlist is empty.",
+  "wishlist_login": "Please <a href=\"/account/login\">log in</a> to use your wishlist ❤️",
+  "wishlist_loading_error": "Loading error.",
+  "wishlist_added": "Added!",
+  "wishlist_adding": "Adding...",
+  "wishlist_add_to_cart": "🛒 Add to cart",
+  "wishlist_remove_error": "Error removing item.",
+  "wishlist_add_error": "Error adding to cart"
+}
