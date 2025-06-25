@@ -27,6 +27,8 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use("/locales", cors({ origin: "*", methods: ["GET"] }), express.static(path.join(__dirname, "public", "locales")));
+
 app.use(express.static("public", {
   setHeaders: (res, filePath) => {
     if (filePath.endsWith(".js")) {
