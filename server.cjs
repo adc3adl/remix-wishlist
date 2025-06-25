@@ -72,6 +72,14 @@ db.prepare(`
 app.get("/auth", (req, res) => {
   const shop = req.query.shop;
   if (!shop) return res.status(400).send("Missing shop parameter!");
+
+  // Удаляем старый токен, если есть
+  const existing = db.prepare("SELECT * FROM shop_tokens WHERE shop = ?").get(shop);
+  if (existing) {
+    db.prepare("DELETE FROM shop_tokens WHERE shop = ?").run(shop);
+    console.log(`🧹 Удалён старый токен для ${shop}`);
+  }
+
   const state = crypto.randomBytes(16).toString("hex");
   const redirectUri = `${APP_URL}/auth/callback`;
 
@@ -79,7 +87,8 @@ app.get("/auth", (req, res) => {
     client_id: SHOPIFY_API_KEY,
     scope: SCOPES,
     redirect_uri: redirectUri,
-    state
+    state,
+    'grant_options[]': 'per-user'
   });
 
   console.log("[SHOPIFY INSTALL URL]", installUrl);
