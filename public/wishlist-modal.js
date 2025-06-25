@@ -176,6 +176,8 @@ if (prehideStyle) prehideStyle.remove();
     productContainer.innerHTML = window.i18n.t("wishlist_login");
     return;
   }
+
+   await window.i18n.loadTranslations();
   try {
     const res = await fetch(`${API_URL}/api/wishlist-get?customerId=${window.customerId}`, {
       headers: { "ngrok-skip-browser-warning": "true" }
