@@ -1,4 +1,22 @@
-<script src="{{ 'wishlist-modal-button2/js/i18n.js' | asset_url }}"></script>
+<script>
+  window.i18n = {
+    lang: "{{ block.settings.language | escape }}",
+    translations: {},
+    async loadTranslations() {
+      const base = "https://remix-wishlist.onrender.com";
+      try {
+        const res = await fetch(`${base}/locales/${this.lang}.json`);
+        this.translations = await res.json();
+      } catch (err) {
+        console.warn("i18n: failed to load translations", err);
+        this.translations = {};
+      }
+    },
+    t(key) {
+      return this.translations[key] || key;
+    }
+  };
+</script>
 
 <!-- Modal wishlist container -->
  <script>

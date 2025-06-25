@@ -1,6 +1,25 @@
-{
-  "name": "Wishlist Button",
-  "target": "section",
-  "type": "block",
-  "settings": []
-}
+[
+  {
+    "name": "Wishlist Button",
+    "target": "section",
+    "type": "block",
+    "settings": []
+  },
+  {
+    "name": "Wishlist Modal",
+    "target": "body",
+    "type": "block",
+    "settings": [
+      {
+        "type": "select",
+        "id": "language",
+        "label": "Language for Wishlist Modal",
+        "options": [
+          { "value": "en", "label": "🇬🇧 English" },
+          { "value": "uk", "label": "🇺🇦 Українська" }
+        ],
+        "default": "en"
+      }
+    ]
+  }
+]
