@@ -1,6 +1,11 @@
+<!-- Важная вставка: сначала data-lang -->
+<script data-lang="{{ block.settings.language | default: 'en' }}"></script>
+
+<!-- Затем основной i18n -->
 <script>
+  const langAttr = document.currentScript.previousElementSibling?.dataset.lang;
   window.i18n = {
-    lang: "{{ block.settings.language | escape }}",
+    lang: langAttr || "en",
     translations: {},
     async loadTranslations() {
       const base = "https://remix-wishlist.onrender.com";
@@ -17,7 +22,6 @@
     }
   };
 </script>
-
 <!-- Modal wishlist container -->
  <script>
   window.customerId = {{ customer.id | json }};
