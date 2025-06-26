@@ -210,7 +210,7 @@ if (prehideStyle) prehideStyle.remove();
     ${p.title}
   </a>
 </div>
-    ${p.variantTitle ? `<div class="wishlist-variant">Variant: ${p.variantTitle}</div>` : ""}
+    ${p.variantTitle ? `<div class="wishlist-variant"><span data-i18n="variantLabel">Variant:</span> ${p.variantTitle}</div>` : ""}
     <div class="wishlist-price">${p.price} ${p.currency || 'UAH'}</div>
   </div>
 
