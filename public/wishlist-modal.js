@@ -230,7 +230,7 @@ if (prehideStyle) prehideStyle.remove();
 </div>
       `).join("");
     } else {
-      productContainer.innerHTML = "Your wishlist is empty.";
+      productContainer.innerHTML = window.i18n.t("empty");
     }
   } catch (err) {
     productContainer.innerHTML = "Loading error.";
@@ -333,7 +333,7 @@ if (e.target.classList.contains("wishlist-remove")) {
         item.remove();
         const remainingItems = modal.querySelectorAll(".wishlist-item").length;
         if (remainingItems === 0) {
-          productContainer.innerHTML = "Your wishlist is empty.";
+          productContainer.innerHTML = window.i18n.t("empty");
         }
       }, 1000);
 

@@ -22,6 +22,15 @@
     }
   };
 </script>
+<script>
+  (async function () {
+    await window.i18n.loadTranslations();
+    document.querySelectorAll("[data-i18n]").forEach((el) => {
+      const key = el.getAttribute("data-i18n");
+      el.innerHTML = window.i18n.t(key);
+    });
+  })();
+</script>
 <!-- Modal wishlist container -->
  <script>
   window.customerId = {{ customer.id | json }};
@@ -29,10 +38,10 @@
 <div id="wishlist-modal" class="wishlist-modal-v2">
   <div class="wishlist-modal-content-v2">
     <button id="wishlist-close" class="wishlist-modal-close" aria-label="Close">&times;</button>
-    <h2 class="text-2xl font-semibold mb-4">❤️ Wishlist ❤️</h2>
+    <h2 class="text-2xl font-semibold mb-4"  data-i18n="wishlistTitle"></h2>
     <div id="wishlist-products" class="wishlist-items-container-v2"></div>
-    <div id="wishlist-empty" class="text-center text-gray-500 hidden">
-      Your wishlist is empty.
+    <div id="wishlist-empty" class="text-center text-gray-500 hidden" data-i18n="empty">
+    
     </div>
   </div>
 </div>
@@ -347,8 +356,17 @@
 {
   "name": "Wishlist Modal",
   "target": "body",
-  "enabled_on": {
-    "templates": ["*"]
-  }
+  "settings": [
+    {
+      "type": "select",
+      "id": "language",
+      "label": "Language for Wishlist Modal",
+      "options": [
+        { "value": "en", "label": "🇬🇧 English" },
+        { "value": "uk", "label": "🇺🇦 Українська" }
+      ],
+      "default": "en"
+    }
+  ]
 }
 {% endschema %}
