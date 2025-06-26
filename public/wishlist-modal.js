@@ -19,7 +19,7 @@ if (!window.i18n) {
   window.cachedWishlistIds = window.cachedWishlistIds || [];
 
 
-  const cartColor = window.WISHLIST_MODAL_COLORS?.cartButton || "#93c5fd";
+const cartColor = window.WISHLIST_MODAL_COLORS?.cartButton || "#93c5fd";
 const removeColor = window.WISHLIST_MODAL_COLORS?.removeButton || "#fca5a5";
 
 if (!document.getElementById("wishlist-color-styles")) {
@@ -27,32 +27,16 @@ if (!document.getElementById("wishlist-color-styles")) {
   style.id = "wishlist-color-styles";
   style.innerHTML = `
     .wishlist-add-to-cart {
-      background-color: ${cartColor};
-      color: #fff;
-      padding: 8px 14px;
-      font-weight: 600;
-      border-radius: 10px;
-      border: none;
-      cursor: pointer;
-      transition: background-color 0.2s ease;
+      background-color: ${cartColor} !important;
     }
     .wishlist-add-to-cart:hover {
-      background-color: ${shadeColor(cartColor, -10)};
+      background-color: ${shadeColor(cartColor, -10)} !important;
     }
     .wishlist-remove {
-      background-color: ${removeColor};
-      color: white;
-      border: none;
-      border-radius: 10px;
-      width: 36px;
-      height: 36px;
-      font-size: 22px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background-color 0.2s ease;
+      background-color: ${removeColor} !important;
     }
     .wishlist-remove:hover {
-      background-color: ${shadeColor(removeColor, -10)};
+      background-color: ${shadeColor(removeColor, -10)} !important;
     }
   `;
   document.head.appendChild(style);
