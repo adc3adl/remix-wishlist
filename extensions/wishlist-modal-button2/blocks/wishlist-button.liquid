@@ -3,6 +3,7 @@
 <button
   type="button"
   class="wishlist-button hidden-before-init"
+  style="color: {{ app.settings.wishlist_button_color }}"
   data-variant-id="{{ product.selected_or_first_available_variant.id }}"
   aria-label="Toggle wishlist"
 >
@@ -11,7 +12,7 @@
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 24 24"
     fill="none"
-    stroke="#e63946"
+    stroke="{{ app.settings.wishlist_button_color }}"
     stroke-width="2"
     stroke-linecap="round"
     stroke-linejoin="round"
@@ -48,12 +49,12 @@
   }
 
   .wishlist-button svg {
-    stroke: #e63946;
+    stroke: currentColor;
     fill: none;
   }
 
   .wishlist-button.added svg {
-    fill: #e63946;
+    fill: currentColor;
   }
 
   .wishlist-button:hover svg {
