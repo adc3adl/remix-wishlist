@@ -1,3 +1,9 @@
+<script>
+  window.WISHLIST_MODAL_COLORS = {
+    cartButton: "{{ block.settings.wishlist_cart_button_color | default: '#93c5fd' }}",
+    removeButton: "{{ block.settings.wishlist_remove_button_color | default: '#fca5a5' }}"
+  };
+</script>
 <!-- Важная вставка: сначала data-lang -->
 <script data-lang="{{ block.settings.language | default: 'en' }}"></script>
 
@@ -369,15 +375,15 @@
     },
     {
       "type": "color",
-      "id": "wishlist_toggle_color",
-      "label": "Цвет иконки Wishlist (сердечко в хедере)",
-      "default": "#e63946"
+      "id": "wishlist_cart_button_color",
+      "label": "Цвет кнопки 'Добавить в корзину'",
+      "default": "#93c5fd"
     },
     {
       "type": "color",
-      "id": "wishlist_button_color",
-      "label": "Цвет иконки Wishlist (на карточках товаров)",
-      "default": "#e63946"
+      "id": "wishlist_remove_button_color",
+      "label": "Цвет кнопки удаления из Wishlist",
+      "default": "#fca5a5"
     }
   ]
 }

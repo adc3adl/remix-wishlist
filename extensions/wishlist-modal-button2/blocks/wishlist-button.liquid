@@ -1,9 +1,8 @@
 <!-- ❤️ Wishlist Button -->
-<!-- ❤️ Wishlist Button -->
 <button
   type="button"
   class="wishlist-button hidden-before-init"
-  style="color: {{ app.settings.wishlist_button_color }}"
+  style="color: {{ block.settings.wishlist_button_color }}"
   data-variant-id="{{ product.selected_or_first_available_variant.id }}"
   aria-label="Toggle wishlist"
 >
@@ -12,7 +11,7 @@
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 24 24"
     fill="none"
-    stroke="{{ app.settings.wishlist_button_color }}"
+    stroke="currentColor"
     stroke-width="2"
     stroke-linecap="round"
     stroke-linejoin="round"
@@ -22,7 +21,6 @@
     <path d="M20.8 4.6c-1.5-1.4-3.9-1.4-5.4 0L12 8l-3.4-3.4c-1.5-1.4-3.9-1.4-5.4 0-1.5 1.5-1.5 3.9 0 5.4l8.8 8.8 8.8-8.8c1.5-1.5 1.5-3.9 0-5.4z"/>
   </svg>
 </button>
-
 
 <!-- 🔒 Modal for unauthorized users -->
 <div id="wishlist-login-modal" class="wishlist-login-modal hidden">
@@ -130,8 +128,6 @@
     if (!svg) return;
 
     el.classList.toggle("added", isAdded);
-    svg.setAttribute("fill", isAdded ? "#e63946" : "none");
-    svg.setAttribute("stroke", "#e63946");
     el.classList.remove("hidden-before-init");
 
     if (isFromClick) {
@@ -260,7 +256,6 @@
 
     let lastVariantId = getCurrentVariantIdFromUrl();
 
-    // ✅ Слежение за изменением variantId в URL
     setInterval(() => {
       const current = getCurrentVariantIdFromUrl();
       if (current && current !== lastVariantId) {
@@ -271,10 +266,18 @@
     }, 500);
   });
 </script>
+
 {% schema %}
 {
   "name": "Wishlist Button",
   "target": "section",
-  "settings": []
+  "settings": [
+    {
+      "type": "color",
+      "id": "wishlist_button_color",
+      "label": "Цвет иконки Wishlist (на карточках товаров)",
+      "default": "#e63946"
+    }
+  ]
 }
 {% endschema %}

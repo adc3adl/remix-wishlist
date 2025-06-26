@@ -18,6 +18,61 @@ if (!window.i18n) {
   const API_URL = "https://remix-wishlist.onrender.com";
   window.cachedWishlistIds = window.cachedWishlistIds || [];
 
+
+  const cartColor = window.WISHLIST_MODAL_COLORS?.cartButton || "#93c5fd";
+const removeColor = window.WISHLIST_MODAL_COLORS?.removeButton || "#fca5a5";
+
+if (!document.getElementById("wishlist-color-styles")) {
+  const style = document.createElement("style");
+  style.id = "wishlist-color-styles";
+  style.innerHTML = `
+    .wishlist-add-to-cart {
+      background-color: ${cartColor};
+      color: #fff;
+      padding: 8px 14px;
+      font-weight: 600;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    .wishlist-add-to-cart:hover {
+      background-color: ${shadeColor(cartColor, -10)};
+    }
+    .wishlist-remove {
+      background-color: ${removeColor};
+      color: white;
+      border: none;
+      border-radius: 10px;
+      width: 36px;
+      height: 36px;
+      font-size: 22px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    .wishlist-remove:hover {
+      background-color: ${shadeColor(removeColor, -10)};
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+function shadeColor(color, percent) {
+  const num = parseInt(color.replace("#", ""), 16),
+        amt = Math.round(2.55 * percent),
+        R = (num >> 16) + amt,
+        G = ((num >> 8) & 0x00FF) + amt,
+        B = (num & 0x0000FF) + amt;
+  return "#" + (
+    0x1000000 +
+    (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 +
+    (G < 255 ? (G < 1 ? 0 : G) : 255) * 0x100 +
+    (B < 255 ? (B < 1 ? 0 : B) : 255)
+  ).toString(16).slice(1);
+}
+
+
   if (!document.getElementById("wishlist-modal-styles")) {
     const style = document.createElement("style");
     style.id = "wishlist-modal-styles";
