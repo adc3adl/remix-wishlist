@@ -169,7 +169,7 @@ function showLoginModal(targetElement) {
     modal.innerHTML = `
     <button id="wishlist-login-close" class="wishlist-modal-close" aria-label="Close">&times;</button>
     <div class="wishlist-login-content">
-      <p>Please <a href="/account/login">log in</a> to use your wishlist ❤️</p>
+      <p>${window.i18n.t("wishlist_login")}</p>
     </div>`;
 
     const productCard = targetElement.closest(".product-card") || targetElement.closest(".card") || targetElement.parentElement;
