@@ -220,15 +220,20 @@ if (prehideStyle) prehideStyle.remove();
     <button type="button" class="qty-btn qty-plus">+</button>
   </div>
 
-  <button type="button" class="wishlist-add-to-cart">
-    🛒 Add to cart
-  </button>
+<button type="button" class="wishlist-add-to-cart" data-i18n="addToCart">
+  ${window.i18n.t("addToCart")}
+</button>
 
   <button type="button" class="wishlist-remove">
     ✕
   </button>
 </div>
       `).join("");
+      // 🔁 Применяем переводы к кнопкам и другим элементам с data-i18n
+productContainer.querySelectorAll("[data-i18n]").forEach((el) => {
+  const key = el.getAttribute("data-i18n");
+  el.textContent = window.i18n.t(key);
+});
     } else {
       productContainer.innerHTML = window.i18n.t("empty");
     }
@@ -370,7 +375,8 @@ if (e.target.classList.contains("wishlist-add-to-cart")) {
 
   try {
     e.target.disabled = true;
-    e.target.textContent = "Adding...";
+    e.target.setAttribute("data-i18n", "adding");
+    e.target.textContent = window.i18n.t("adding");
 
     await fetch("/cart/add.js", {
       method: "POST",
@@ -394,11 +400,13 @@ if (e.target.classList.contains("wishlist-add-to-cart")) {
       })
     });
 
-    e.target.textContent = "Added!";
+    e.target.setAttribute("data-i18n", "added");
+    e.target.textContent = window.i18n.t("added");
 
     setTimeout(() => {
-      e.target.textContent = "🛒 Add to cart";
-      e.target.disabled = false;
+    e.target.setAttribute("data-i18n", "addToCart");
+    e.target.textContent = window.i18n.t("addToCart");
+    e.target.disabled = false;
     }, 1200);
 // ✅ Обновляем счётчик корзины
 fetch("/cart.js")
@@ -439,8 +447,9 @@ fetch("/cart.js")
 
   } catch (err) {
     alert("Ошибка при добавлении в корзину");
-    e.target.textContent = "🛒 Add to cart";
-    e.target.disabled = false;
+      e.target.setAttribute("data-i18n", "addToCart");
+      e.target.textContent = window.i18n.t("addToCart");
+      e.target.disabled = false;
     console.error("❌ Error adding to cart:", err);
   }
 }
