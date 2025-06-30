@@ -269,6 +269,7 @@ if (prehideStyle) prehideStyle.remove();
       if (typeof item.available === "number" && item.quantity > item.available) {
         item.quantity = item.available;
       }
+       item.totalPrice = (item.price * item.quantity).toFixed(2);
     });
     window.cachedWishlistIds = enriched.map(p => String(p.id));
     syncWishlistButtons();
@@ -292,8 +293,8 @@ if (prehideStyle) prehideStyle.remove();
   </a>
 </div>
     ${p.variantTitle ? `<div class="wishlist-variant"><span data-i18n="variantLabel">Variant:</span> ${p.variantTitle}</div>` : ""}
-   <div class="wishlist-price" data-unit-price="${p.price}" data-currency="${p.currency || 'UAH'}">
-  ${formatPrice(p.price * (p.quantity || 1), p.currency || 'UAH')}
+<div class="wishlist-price" data-unit-price="${p.price}" data-currency="${p.currency || 'UAH'}">
+  ${formatPrice(p.totalPrice, p.currency || 'UAH')}
 </div>
   </div>
 
