@@ -277,7 +277,7 @@ wishlist.push({
   }
 });
 // === Wishlist get
-app.get("/api/wishlist-get", async (req, res) => {
+  app.get("/api/wishlist-get", async (req, res) => {
   const { customerId } = req.query;
   if (!customerId) return res.status(400).json({ error: "Missing customerId" });
 
@@ -304,6 +304,7 @@ app.get("/api/wishlist-get", async (req, res) => {
 
     for (const entry of variantEntries) {
       const variantId = typeof entry === "object" ? entry.id : entry;
+      const quantity = typeof entry === "object" ? entry.quantity || 1 : 1;
 
       try {
         // Получаем вариант
@@ -328,15 +329,18 @@ app.get("/api/wishlist-get", async (req, res) => {
           product.image ||
           product.images?.[0];
 
+        const inventoryQty = variant.inventory_quantity ?? 99999;
+
         variantList.push({
           id: variantId,
-          quantity: entry.quantity || 1,
+          quantity,
           title: product.title,
           variantTitle: variant.title,
           handle: product.handle,
           url: `/products/${product.handle}?variant=${variantId}`,
           currency: "UAH",
-          image: imageObj?.src || "https://placehold.co/80x80?text=No+Image"
+          image: imageObj?.src || "https://placehold.co/80x80?text=No+Image",
+          available: inventoryQty
         });
       } catch (err) {
         console.error("❌ Ошибка получения варианта:", err.response?.data || err.message);
