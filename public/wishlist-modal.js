@@ -632,9 +632,9 @@ async function enrichPricesInWishlist(products) {
           currency: Shopify.currency?.active || 'UAH',
           variantTitle: variant.public_title,
           image: variant.featured_image?.src || data.featured_image || p.image,
-          available: variant.inventory_policy === "deny" && variant.inventory_quantity != null
-          ? variant.inventory_quantity
-          : 99999
+          available: variant.available
+          ? (variant.inventory_policy === 'deny' ? 1 : 99999)
+          : 0
         };
       }
     } catch (err) {
