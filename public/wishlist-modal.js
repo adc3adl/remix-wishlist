@@ -258,8 +258,8 @@ if (prehideStyle) prehideStyle.remove();
   </a>
 </div>
     ${p.variantTitle ? `<div class="wishlist-variant"><span data-i18n="variantLabel">Variant:</span> ${p.variantTitle}</div>` : ""}
-    <div class="wishlist-price" data-unit-price="${p.price}" data-currency="${p.currency || 'UAH'}">
-  ${formatPrice(p.price, p.currency || 'UAH')}
+   <div class="wishlist-price" data-unit-price="${p.price}" data-currency="${p.currency || 'UAH'}">
+  ${formatPrice(p.price * (p.quantity || 1), p.currency || 'UAH')}
 </div>
   </div>
 
