@@ -56,6 +56,14 @@ function shadeColor(color, percent) {
   ).toString(16).slice(1);
 }
 
+function formatPrice(amount, currency = "UAH") {
+  return Number(amount).toLocaleString(undefined, {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
 
   if (!document.getElementById("wishlist-modal-styles")) {
     const style = document.createElement("style");
@@ -250,7 +258,9 @@ if (prehideStyle) prehideStyle.remove();
   </a>
 </div>
     ${p.variantTitle ? `<div class="wishlist-variant"><span data-i18n="variantLabel">Variant:</span> ${p.variantTitle}</div>` : ""}
-    <div class="wishlist-price">${p.price} ${p.currency || 'UAH'}</div>
+    <div class="wishlist-price" data-unit-price="${p.price}" data-currency="${p.currency || 'UAH'}">
+  ${formatPrice(p.price, p.currency || 'UAH')}
+</div>
   </div>
 
   <div class="qty-control">
@@ -322,6 +332,14 @@ document.addEventListener("click", async (e) => {
 
           qtyInput.value = current;
           qtyInput.dispatchEvent(new Event("change", { bubbles: true }));
+
+          //  Обновляем цену при нажатии +/- кнопок
+          const item = e.target.closest(".wishlist-item");
+          const priceEl = item.querySelector(".wishlist-price");
+          const unitPrice = parseFloat(priceEl.dataset.unitPrice);
+          const currency = priceEl.dataset.currency || "UAH";
+          const total = unitPrice * current;
+          priceEl.textContent = formatPrice(total, currency);
 
           // ✅ Обновляем disabled у кнопки
           if (minusBtn) {
@@ -495,32 +513,40 @@ fetch("/cart.js")
 
       });
 
-      productContainer.addEventListener("change", async (e) => {
-        if (e.target.classList.contains("wishlist-qty")) {
-          const item = e.target.closest(".wishlist-item");
-          const variantId = item?.getAttribute("data-variant-id");
-          const quantity = Number(e.target.value) || 1;
-          if (!variantId || !window.customerId) return;
+productContainer.addEventListener("change", async (e) => {
+  if (e.target.classList.contains("wishlist-qty")) {
+    const item = e.target.closest(".wishlist-item");
+    const variantId = item?.getAttribute("data-variant-id");
+    const quantity = Number(e.target.value) || 1;
+    if (!variantId || !window.customerId) return;
 
-          try {
-            await fetch(`${API_URL}/api/wishlist`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "ngrok-skip-browser-warning": "true"
-              },
-              body: JSON.stringify({
-                customerId: window.customerId,
-                variantId,
-                quantity,
-                action: "update"
-              })
-            });
-          } catch (err) {
-            console.error("❌ Error updating quantity:", err);
-          }
-        }
+    try {
+      await fetch(`${API_URL}/api/wishlist`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "ngrok-skip-browser-warning": "true"
+        },
+        body: JSON.stringify({
+          customerId: window.customerId,
+          variantId,
+          quantity,
+          action: "update"
+        })
       });
+
+      //обновляем отображение цены после успешного обновления на сервере
+      const priceEl = item.querySelector(".wishlist-price");
+      const unitPrice = parseFloat(priceEl.dataset.unitPrice);
+      const currency = priceEl.dataset.currency || "UAH";
+      const total = unitPrice * quantity;
+      priceEl.textContent = formatPrice(total, currency);
+
+    } catch (err) {
+      console.error("❌ Error updating quantity:", err);
+    }
+  }
+});
     }
   }
 
