@@ -369,7 +369,6 @@ document.addEventListener("click", async (e) => {
           qtyInput.dispatchEvent(new Event("change", { bubbles: true }));
 
           //  Обновляем цену при нажатии +/- кнопок
-          const item = e.target.closest(".wishlist-item");
           const priceEl = item.querySelector(".wishlist-price");
           const unitPrice = parseFloat(priceEl.dataset.unitPrice);
           const currency = priceEl.dataset.currency || "UAH";
