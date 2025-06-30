@@ -263,15 +263,18 @@ if (prehideStyle) prehideStyle.remove();
     }
     const data = JSON.parse(raw);
 
-    const enriched = await enrichPricesInWishlist(data.products || []);
-    // Ограничиваем количество по доступному запасу
-    enriched.forEach((item) => {
-      if (typeof item.available === "number" && item.quantity > item.available) {
-        item.quantity = item.available;
-      }
-       item.totalPrice = (item.price * item.quantity).toFixed(2);
-       item.correctedQuantity = item.quantity;
-    });
+   let enriched = await enrichPricesInWishlist(data.products || []);
+
+// Ограничиваем количество и пересчитываем цену уже после enrich
+enriched = enriched.map(item => {
+  const correctedQuantity = Math.min(item.quantity, item.available ?? 99999);
+  const price = parseFloat(item.price); // уже должен быть обновлён
+  return {
+    ...item,
+    correctedQuantity,
+    totalPrice: (price * correctedQuantity).toFixed(2)
+  };
+});
     window.cachedWishlistIds = enriched.map(p => String(p.id));
     syncWishlistButtons();
 
