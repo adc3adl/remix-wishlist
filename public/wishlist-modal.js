@@ -264,6 +264,12 @@ if (prehideStyle) prehideStyle.remove();
     const data = JSON.parse(raw);
 
     const enriched = await enrichPricesInWishlist(data.products || []);
+    // Ограничиваем количество по доступному запасу
+    enriched.forEach((item) => {
+      if (typeof item.available === "number" && item.quantity > item.available) {
+        item.quantity = item.available;
+      }
+    });
     window.cachedWishlistIds = enriched.map(p => String(p.id));
     syncWishlistButtons();
 
