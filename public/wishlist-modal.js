@@ -567,6 +567,12 @@ productContainer.addEventListener("change", async (e) => {
     if (quantity > max) {
       e.target.value = max;
       showWishlistNotice(`Ви намагаєтесь додати ${quantity} одиниць, але доступно лише ${max}.`);
+      // Обновляем цену после автосброса
+      const priceEl = item.querySelector(".wishlist-price");
+      const unitPrice = parseFloat(priceEl.dataset.unitPrice);
+      const currency = priceEl.dataset.currency || "UAH";
+      const total = unitPrice * max;
+      priceEl.textContent = formatPrice(total, currency);
     }
 
     if (!variantId || !window.customerId) return;
