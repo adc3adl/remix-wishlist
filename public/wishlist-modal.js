@@ -635,7 +635,7 @@ async function enrichPricesInWishlist(products) {
       if (variant) {
         return {
           ...p,
-          price: (variant.price / 100).toFixed(2),
+          //price: (variant.price / 100).toFixed(2), !updated from  backend
           currency: Shopify.currency?.active || 'UAH',
           variantTitle: variant.public_title,
           image: variant.featured_image?.src || data.featured_image || p.image,
