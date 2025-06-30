@@ -272,7 +272,7 @@ if (prehideStyle) prehideStyle.remove();
 <div class="wishlist-item"
      data-variant-id="${p.id}"
      data-title="${encodeURIComponent(p.title)}"
-     data-url="${encodeURIComponent(p.url)}">
+     data-url="${encodeURIComponent(p.url)}"
      data-available="${p.available}">
 
   <img class="wishlist-product-image"
