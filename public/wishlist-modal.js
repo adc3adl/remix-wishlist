@@ -65,6 +65,33 @@ function formatPrice(amount, currency = "UAH") {
   });
 }
 
+
+function showWishlistNotice(message) {
+  const existing = document.getElementById("wishlist-limit-warning");
+  if (existing) existing.remove();
+
+  const note = document.createElement("div");
+  note.id = "wishlist-limit-warning";
+  note.textContent = message;
+  note.style.cssText = `
+    background: #fef3c7;
+    border: 1px solid #facc15;
+    padding: 8px 12px;
+    font-size: 14px;
+    color: #92400e;
+    border-radius: 6px;
+    margin: 12px 0;
+    text-align: center;
+  `;
+
+  const container = document.querySelector("#wishlist-modal .wishlist-modal-content-v2");
+  if (container) container.prepend(note);
+
+  setTimeout(() => note.remove(), 4000);
+}
+
+
+
   if (!document.getElementById("wishlist-modal-styles")) {
     const style = document.createElement("style");
     style.id = "wishlist-modal-styles";
@@ -246,6 +273,7 @@ if (prehideStyle) prehideStyle.remove();
      data-variant-id="${p.id}"
      data-title="${encodeURIComponent(p.title)}"
      data-url="${encodeURIComponent(p.url)}">
+     data-available="${p.available}">
 
   <img class="wishlist-product-image"
        src="${p.image || 'https://placehold.co/80x80?text=No+Image'}"
@@ -329,6 +357,13 @@ document.addEventListener("click", async (e) => {
 
           if (isMinus && current > 1) current--;
           if (!isMinus) current++;
+
+          const item = e.target.closest(".wishlist-item");
+          const max = parseInt(item.dataset.available || "99999", 10);
+          if (current > max) {
+            showWishlistNotice(`Ви намагаєтесь додати ${current} одиниць, але доступно лише ${max}.`);
+            return;
+          }
 
           qtyInput.value = current;
           qtyInput.dispatchEvent(new Event("change", { bubbles: true }));
@@ -518,6 +553,12 @@ productContainer.addEventListener("change", async (e) => {
     const item = e.target.closest(".wishlist-item");
     const variantId = item?.getAttribute("data-variant-id");
     const quantity = Number(e.target.value) || 1;
+    const max = parseInt(item.dataset.available || "99999", 10);
+    if (quantity > max) {
+      e.target.value = max;
+      showWishlistNotice(`Ви намагаєтесь додати ${quantity} одиниць, але доступно лише ${max}.`);
+    }
+
     if (!variantId || !window.customerId) return;
 
     try {
@@ -592,6 +633,7 @@ async function enrichPricesInWishlist(products) {
           currency: Shopify.currency?.active || 'UAH',
           variantTitle: variant.public_title,
           image: variant.featured_image?.src || data.featured_image || p.image,
+          available: variant.inventory_quantity ?? 99999
         };
       }
     } catch (err) {
