@@ -269,7 +269,7 @@ if (prehideStyle) prehideStyle.remove();
       if (typeof item.available === "number" && item.quantity > item.available) {
         item.quantity = item.available;
       }
-       item.totalPrice = (item.price * item.quantity).toFixed(2);
+       item.totalPrice = (Number(item.price) * Number(item.quantity)).toFixed(2);
     });
     window.cachedWishlistIds = enriched.map(p => String(p.id));
     syncWishlistButtons();
