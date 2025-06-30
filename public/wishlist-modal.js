@@ -269,7 +269,7 @@ if (prehideStyle) prehideStyle.remove();
       if (typeof item.available === "number" && item.quantity > item.available) {
         item.quantity = item.available;
       }
-       item.totalPrice = (Number(item.price) * Number(item.quantity)).toFixed(2);
+       item.totalPrice = (item.price * item.quantity).toFixed(2);
     });
     window.cachedWishlistIds = enriched.map(p => String(p.id));
     syncWishlistButtons();
@@ -635,7 +635,7 @@ async function enrichPricesInWishlist(products) {
       if (variant) {
         return {
           ...p,
-          //price: (variant.price / 100).toFixed(2), !updated from  backend
+          price: (variant.price / 100).toFixed(2),
           currency: Shopify.currency?.active || 'UAH',
           variantTitle: variant.public_title,
           image: variant.featured_image?.src || data.featured_image || p.image,
