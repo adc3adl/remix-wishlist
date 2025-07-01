@@ -568,7 +568,7 @@ productContainer.addEventListener("change", async (e) => {
     if (quantity > max) {
       e.target.value = max;
         showWishlistNotice(
-        window.i18n.t("wishlist.limitExceeded", { quantity, max })
+        window.i18n.t("limitExceeded", { quantity, max })
   );
     }
 
