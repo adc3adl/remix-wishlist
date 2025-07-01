@@ -372,7 +372,11 @@ document.addEventListener("click", async (e) => {
           const item = e.target.closest(".wishlist-item");
           const max = parseInt(item.dataset.available || "99999", 10);
           if (current > max) {
-            showWishlistNotice(`Ви намагаєтесь додати ${current} одиниць, але доступно лише ${max}.`);
+            const template = window.i18n.t("limitExceeded");
+            const message = template
+              .replace("{{quantity}}", current)
+              .replace("{{max}}", max);
+            showWishlistNotice(message);
             return;
           }
 
@@ -565,12 +569,14 @@ productContainer.addEventListener("change", async (e) => {
     const quantity = Number(e.target.value) || 1;
     const max = parseInt(item.dataset.available || "99999", 10);
 
-    if (quantity > max) {
-      e.target.value = max;
-        showWishlistNotice(
-        window.i18n.t("limitExceeded", { quantity, max })
-  );
-    }
+if (quantity > max) {
+  e.target.value = max;
+  const template = window.i18n.t("limitExceeded");
+  const message = template
+    .replace("{{quantity}}", quantity)
+    .replace("{{max}}", max);
+  showWishlistNotice(message);
+}
 
     // 🔁 Всегда обновляем цену, независимо от сброса или нет
     const correctedQty = parseInt(e.target.value) || 1;
