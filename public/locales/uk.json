@@ -10,5 +10,6 @@
   "adding": "Додаємо...",
   "wishlist_remove_error": "Помилка видалення елемента.",
   "wishlist_add_error": "Помилка додавання до кошика",
-  "variantLabel": "Варіант:"
+  "variantLabel": "Варіант:",
+  "limitExceeded": "Ви намагаєтесь додати {{quantity}} одиниць, але доступно лише {{max}}."
 }

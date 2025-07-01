@@ -10,5 +10,6 @@
   "adding": "Adding...",
   "wishlist_remove_error": "Error removing item.",
   "wishlist_add_error": "Error adding to cart",
-  "variantLabel": "Variant:"
+  "variantLabel": "Variant:",
+  "limitExceeded": "You are trying to add {{quantity}} units, but only {{max}} are available."
 }

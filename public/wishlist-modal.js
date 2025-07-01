@@ -567,7 +567,9 @@ productContainer.addEventListener("change", async (e) => {
 
     if (quantity > max) {
       e.target.value = max;
-      showWishlistNotice(`Ви намагаєтесь додати ${quantity} одиниць, але доступно лише ${max}.`);
+        showWishlistNotice(
+        window.i18n.t("wishlist.limitExceeded", { quantity, max })
+  );
     }
 
     // 🔁 Всегда обновляем цену, независимо от сброса или нет
